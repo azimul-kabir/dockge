@@ -62,9 +62,12 @@ export default {
 }
 
 .dashboard-workspace {
+    box-sizing: border-box;
     width: 100%;
     min-width: 0;
-    overflow-x: auto;
+    max-width: 100%;
+    padding-right: calc(var(--bs-gutter-x) * 0.5);
+    padding-left: calc(var(--bs-gutter-x) * 0.5);
 }
 
 @media (max-width: 767.98px) {
