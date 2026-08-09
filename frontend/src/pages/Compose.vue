@@ -9,8 +9,8 @@
                 </span>
             </h1>
 
-            <div v-if="stack.isManagedByDockge" class="mb-3">
-                <div class="btn-group me-2" role="group">
+            <div v-if="stack.isManagedByDockge" class="stack-actions mb-3">
+                <div class="btn-group stack-primary-actions me-2" role="group">
                     <button v-if="isEditMode" class="btn btn-primary" :disabled="processing" @click="deployStack">
                         <font-awesome-icon icon="rocket" class="me-1" />
                         {{ $t("deployStack") }}
@@ -68,21 +68,10 @@
                 </a>
             </div>
 
-            <!-- Progress Terminal -->
-            <transition name="slide-fade" appear>
-                <Terminal
-                    v-show="showProgressTerminal"
-                    ref="progressTerminal"
-                    class="mb-3 terminal"
-                    :name="terminalName"
-                    :endpoint="endpoint"
-                    :rows="progressTerminalRows"
-                    @has-data="showProgressTerminal = true; submitted = true;"
-                ></Terminal>
-            </transition>
+            <div v-if="stack.isManagedByDockge" class="stack-workspace">
+                <section class="stack-section" aria-labelledby="overview-heading">
+                    <h2 id="overview-heading" class="stack-section-heading">Overview</h2>
 
-            <div v-if="stack.isManagedByDockge" class="row">
-                <div class="col-lg-6">
                     <!-- General -->
                     <div v-if="isAdd">
                         <h4 class="mb-3">{{ $t("general") }}</h4>
@@ -151,23 +140,39 @@
                             </div>
                         </div>
                     </div>
+                </section>
+
+                <section class="stack-section" aria-labelledby="logs-heading">
+                    <h2 id="logs-heading" class="stack-section-heading">Logs</h2>
+
+                    <!-- Progress Terminal -->
+                    <transition name="slide-fade" appear>
+                        <Terminal
+                            v-show="showProgressTerminal"
+                            ref="progressTerminal"
+                            class="mb-3 terminal progress-terminal"
+                            :name="terminalName"
+                            :endpoint="endpoint"
+                            :rows="progressTerminalRows"
+                            @has-data="showProgressTerminal = true; submitted = true;"
+                        ></Terminal>
+                    </transition>
 
                     <!-- Combined Terminal Output -->
-                    <div v-show="!isEditMode">
-                        <h4 class="mb-3">{{ $t("terminal") }}</h4>
-                        <Terminal
-                            ref="combinedTerminal"
-                            class="mb-3 terminal"
-                            :name="combinedTerminalName"
-                            :endpoint="endpoint"
-                            :rows="combinedTerminalRows"
-                            :cols="combinedTerminalCols"
-                            style="height: 315px;"
-                        ></Terminal>
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <h4 class="mb-3">{{ stack.composeFileName }}</h4>
+                    <Terminal
+                        v-show="!isAdd"
+                        ref="combinedTerminal"
+                        class="mb-3 terminal combined-terminal"
+                        :name="combinedTerminalName"
+                        :endpoint="endpoint"
+                        :rows="combinedTerminalRows"
+                        :cols="combinedTerminalCols"
+                    ></Terminal>
+                </section>
+
+                <section class="stack-section" aria-labelledby="compose-heading">
+                    <h2 id="compose-heading" class="stack-section-heading">Compose</h2>
+                    <h4 class="mb-3 stack-section-filename">{{ stack.composeFileName }}</h4>
 
                     <!-- YAML editor -->
                     <div class="shadow-box mb-3 editor-box" :class="{'edit-mode' : isEditMode}">
@@ -187,50 +192,43 @@
                     <div v-if="isEditMode" class="mb-3">
                         {{ yamlError }}
                     </div>
+                </section>
 
-                    <!-- ENV editor -->
-                    <div v-if="isEditMode">
-                        <h4 class="mb-3">.env</h4>
-                        <div class="shadow-box mb-3 editor-box" :class="{'edit-mode' : isEditMode}">
-                            <code-mirror
-                                ref="editor"
-                                v-model="stack.composeENV"
-                                :extensions="extensionsEnv"
-                                minimal
-                                wrap="true"
-                                dark="true"
-                                tab="true"
-                                :disabled="!isEditMode"
-                                :hasFocus="editorFocus"
-                                @change="yamlCodeChange"
-                            />
+                <section class="stack-section" aria-labelledby="environment-heading">
+                    <h2 id="environment-heading" class="stack-section-heading">Environment</h2>
+                    <h4 class="mb-3 stack-section-filename">.env</h4>
+                    <div class="shadow-box mb-3 editor-box" :class="{'edit-mode' : isEditMode}">
+                        <code-mirror
+                            ref="envEditor"
+                            v-model="stack.composeENV"
+                            :extensions="extensionsEnv"
+                            minimal
+                            wrap="true"
+                            dark="true"
+                            tab="true"
+                            :disabled="!isEditMode"
+                            :hasFocus="editorFocus"
+                            @change="yamlCodeChange"
+                        />
+                    </div>
+                </section>
+
+                <section class="stack-section" aria-labelledby="networks-heading">
+                    <h2 id="networks-heading" class="stack-section-heading">Networks</h2>
+
+                    <!-- Volumes -->
+                    <div v-if="false">
+                        <h4 class="mb-3">{{ $tc("volume", 2) }}</h4>
+                        <div class="shadow-box big-padding mb-3">
                         </div>
                     </div>
 
-                    <div v-if="isEditMode">
-                        <!-- Volumes -->
-                        <div v-if="false">
-                            <h4 class="mb-3">{{ $tc("volume", 2) }}</h4>
-                            <div class="shadow-box big-padding mb-3">
-                            </div>
-                        </div>
-
-                        <!-- Networks -->
-                        <h4 class="mb-3">{{ $tc("network", 2) }}</h4>
-                        <div class="shadow-box big-padding mb-3">
+                    <fieldset :disabled="!isEditMode" class="network-fieldset">
+                        <div class="shadow-box big-padding mb-3" :class="{ 'read-only': !isEditMode }">
                             <NetworkInput />
                         </div>
-                    </div>
-
-                    <!-- <div class="shadow-box big-padding mb-3">
-                        <div class="mb-3">
-                            <label for="name" class="form-label"> Search Templates</label>
-                            <input id="name" v-model="name" type="text" class="form-control" placeholder="Search..." required>
-                        </div>
-
-                        <prism-editor v-if="false" v-model="yamlConfig" class="yaml-editor" :highlight="highlighter" line-numbers @input="yamlCodeChange"></prism-editor>
-                    </div>-->
-                </div>
+                    </fieldset>
+                </section>
             </div>
 
             <div v-if="!stack.isManagedByDockge && !processing">
@@ -853,7 +851,60 @@ export default {
     height: 200px;
 }
 
+.combined-terminal {
+    height: clamp(280px, 42vh, 420px);
+}
+
+.stack-workspace {
+    width: 100%;
+    min-width: 0;
+}
+
+.stack-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.stack-primary-actions {
+    flex-wrap: wrap;
+    max-width: 100%;
+}
+
+.stack-section {
+    width: 100%;
+    min-width: 0;
+    padding-top: 0.25rem;
+    margin-bottom: 2.5rem;
+}
+
+.stack-section-heading {
+    padding-bottom: 0.65rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(127, 127, 127, 0.25);
+    font-size: 1.35rem;
+}
+
+.stack-section-filename {
+    font-size: 1rem;
+    color: $dark-font-color3;
+}
+
+.network-fieldset {
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    border: 0;
+
+    .read-only {
+        opacity: 0.8;
+        pointer-events: none;
+    }
+}
+
 .editor-box {
+    width: 100%;
+    min-width: 0;
     font-family: 'JetBrains Mono', monospace;
     font-size: 14px;
 }
