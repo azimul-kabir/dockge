@@ -117,6 +117,9 @@ export default {
          * @returns {object} Style for stack list
          */
         boxStyle() {
+            if (this.$root.isMobile) {
+                return { height: "auto" };
+            }
             if (window.innerWidth > 550) {
                 return {
                     height: `calc(100vh - 160px + ${this.windowTop}px)`,
@@ -431,6 +434,29 @@ export default {
         margin-bottom: 10px;
         padding: 5px;
     }
+
+    .shadow-box {
+        height: auto;
+        min-height: 0;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: none;
+    }
+
+    .stack-list {
+        height: auto !important;
+        overflow: visible;
+    }
+
+    .search-wrapper, .search-wrapper form {
+        width: 100%;
+    }
+
+    .search-input {
+        max-width: none;
+        min-height: 44px;
+        font-size: 16px;
+    }
 }
 
 .search-wrapper {
@@ -459,6 +485,11 @@ export default {
 
 .stack-item {
     width: 100%;
+}
+
+.stack-list {
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .tags {

@@ -1,248 +1,104 @@
 <template>
-    <transition name="slide-fade" appear>
-        <div>
-            <h1 v-if="isAdd" class="mb-3">{{ $t("compose") }}</h1>
-            <h1 v-else class="mb-3">
-                <Uptime :stack="globalStack" :pill="true" /> {{ stack.name }}
-                <span v-if="$root.agentCount > 1 && endpoint !== ''" class="agent-name">
-                    ({{ endpointDisplay }})
-                </span>
-            </h1>
-
-            <div v-if="stack.isManagedByDockge" class="mb-3">
-                <div class="btn-group me-2" role="group">
-                    <button v-if="isEditMode" class="btn btn-primary" :disabled="processing" @click="deployStack">
-                        <font-awesome-icon icon="rocket" class="me-1" />
-                        {{ $t("deployStack") }}
-                    </button>
-
-                    <button v-if="isEditMode" class="btn btn-normal" :disabled="processing" @click="saveStack">
-                        <font-awesome-icon icon="save" class="me-1" />
-                        {{ $t("saveStackDraft") }}
-                    </button>
-
-                    <button v-if="!isEditMode" class="btn btn-secondary" :disabled="processing" @click="enableEditMode">
-                        <font-awesome-icon icon="pen" class="me-1" />
-                        {{ $t("editStack") }}
-                    </button>
-
-                    <button v-if="!isEditMode && !active" class="btn btn-primary" :disabled="processing" @click="startStack">
-                        <font-awesome-icon icon="play" class="me-1" />
-                        {{ $t("startStack") }}
-                    </button>
-
-                    <button v-if="!isEditMode && active" class="btn btn-normal " :disabled="processing" @click="restartStack">
-                        <font-awesome-icon icon="rotate" class="me-1" />
-                        {{ $t("restartStack") }}
-                    </button>
-
-                    <button v-if="!isEditMode" class="btn btn-normal" :disabled="processing" @click="updateStack">
-                        <font-awesome-icon icon="cloud-arrow-down" class="me-1" />
-                        {{ $t("updateStack") }}
-                    </button>
-
-                    <button v-if="!isEditMode && active" class="btn btn-normal" :disabled="processing" @click="stopStack">
-                        <font-awesome-icon icon="stop" class="me-1" />
-                        {{ $t("stopStack") }}
-                    </button>
-
-                    <BDropdown right text="" variant="normal">
-                        <BDropdownItem @click="downStack">
-                            <font-awesome-icon icon="stop" class="me-1" />
-                            {{ $t("downStack") }}
-                        </BDropdownItem>
-                    </BDropdown>
-                </div>
-
-                <button v-if="isEditMode && !isAdd" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
-                <button v-if="!isEditMode" class="btn btn-danger" :disabled="processing" @click="showDeleteDialog = !showDeleteDialog">
-                    <font-awesome-icon icon="trash" class="me-1" />
-                    {{ $t("deleteStack") }}
-                </button>
+    <div class="stack-page" :class="[`focus-${focusPane}`, { 'is-mobile': $root.isMobile }]">
+        <header class="stack-header">
+            <router-link v-if="$root.isMobile && !isAdd" to="/" class="icon-link" :aria-label="$t('home')">‹</router-link>
+            <div class="stack-title">
+                <h1>{{ isAdd ? $t("compose") : stack.name }}</h1>
+                <div v-if="!isAdd" class="stack-state"><Uptime :stack="globalStack" :pill="true" /> <span v-if="$root.agentCount > 1 && endpoint">{{ endpointDisplay }}</span></div>
             </div>
+            <button v-if="$root.isMobile && !isAdd" class="icon-button" :class="{ active: mobileView === 'more' }" aria-label="More" @click="mobileView = 'more'">•••</button>
+        </header>
 
-            <!-- URLs -->
-            <div v-if="urls.length > 0" class="mb-3">
-                <a v-for="(urlItem, index) in urls" :key="index" target="_blank" :href="urlItem.url">
-                    <span class="badge bg-secondary me-2">{{ urlItem.display }}</span>
-                </a>
-            </div>
-
-            <!-- Progress Terminal -->
-            <transition name="slide-fade" appear>
-                <Terminal
-                    v-show="showProgressTerminal"
-                    ref="progressTerminal"
-                    class="mb-3 terminal"
-                    :name="terminalName"
-                    :endpoint="endpoint"
-                    :rows="progressTerminalRows"
-                    @has-data="showProgressTerminal = true; submitted = true;"
-                ></Terminal>
-            </transition>
-
-            <div v-if="stack.isManagedByDockge" class="row">
-                <div class="col-lg-6">
-                    <!-- General -->
-                    <div v-if="isAdd">
-                        <h4 class="mb-3">{{ $t("general") }}</h4>
-                        <div class="shadow-box big-padding mb-3">
-                            <!-- Stack Name -->
-                            <div>
-                                <label for="name" class="form-label">{{ $t("stackName") }}</label>
-                                <input id="name" v-model="stack.name" type="text" class="form-control" required @blur="stackNameToLowercase">
-                                <div class="form-text">{{ $t("Lowercase only") }}</div>
-                            </div>
-
-                            <!-- Endpoint -->
-                            <div class="mt-3">
-                                <label for="name" class="form-label">{{ $t("dockgeAgent") }}</label>
-                                <select v-model="stack.endpoint" class="form-select">
-                                    <option v-for="(agent, agentEndpoint) in $root.agentList" :key="agentEndpoint" :value="agentEndpoint" :disabled="$root.agentStatusList[agentEndpoint] != 'online'">
-                                        ({{ $root.agentStatusList[agentEndpoint] }}) {{ (agent.name !== '') ? agent.name : agent.url || $t("Current") }}
-                                    </option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Containers -->
-                    <h4 class="mb-3">{{ $tc("container", 2) }}</h4>
-
-                    <div v-if="isEditMode" class="input-group mb-3">
-                        <input
-                            v-model="newContainerName"
-                            :placeholder="$t(`New Container Name...`)"
-                            class="form-control"
-                            @keyup.enter="addContainer"
-                        />
-                        <button class="btn btn-primary" @click="addContainer">
-                            {{ $t("addContainer") }}
-                        </button>
-                    </div>
-
-                    <div ref="containerList">
-                        <Container
-                            v-for="(service, name) in jsonConfig.services"
-                            :key="name"
-                            :name="name"
-                            :is-edit-mode="isEditMode"
-                            :first="name === Object.keys(jsonConfig.services)[0]"
-                            :serviceStatus="serviceStatusList[name]"
-                            :dockerStats="dockerStats"
-                            @start-service="startService"
-                            @stop-service="stopService"
-                            @restart-service="restartService"
-                        />
-                    </div>
-
-                    <button v-if="false && isEditMode && jsonConfig.services && Object.keys(jsonConfig.services).length > 0" class="btn btn-normal mb-3" @click="addContainer">{{ $t("addContainer") }}</button>
-
-                    <!-- General -->
-                    <div v-if="isEditMode">
-                        <h4 class="mb-3">{{ $t("extra") }}</h4>
-                        <div class="shadow-box big-padding mb-3">
-                            <!-- URLs -->
-                            <div class="mb-4">
-                                <label class="form-label">
-                                    {{ $tc("url", 2) }}
-                                </label>
-                                <ArrayInput name="urls" :display-name="$t('url')" placeholder="https://" object-type="x-dockge" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Combined Terminal Output -->
-                    <div v-show="!isEditMode">
-                        <h4 class="mb-3">{{ $t("terminal") }}</h4>
-                        <Terminal
-                            ref="combinedTerminal"
-                            class="mb-3 terminal"
-                            :name="combinedTerminalName"
-                            :endpoint="endpoint"
-                            :rows="combinedTerminalRows"
-                            :cols="combinedTerminalCols"
-                            style="height: 315px;"
-                        ></Terminal>
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <h4 class="mb-3">{{ stack.composeFileName }}</h4>
-
-                    <!-- YAML editor -->
-                    <div class="shadow-box mb-3 editor-box" :class="{'edit-mode' : isEditMode}">
-                        <code-mirror
-                            ref="editor"
-                            v-model="stack.composeYAML"
-                            :extensions="extensions"
-                            minimal
-                            wrap="true"
-                            dark="true"
-                            tab="true"
-                            :disabled="!isEditMode"
-                            :hasFocus="editorFocus"
-                            @change="yamlCodeChange"
-                        />
-                    </div>
-                    <div v-if="isEditMode" class="mb-3">
-                        {{ yamlError }}
-                    </div>
-
-                    <!-- ENV editor -->
-                    <div v-if="isEditMode">
-                        <h4 class="mb-3">.env</h4>
-                        <div class="shadow-box mb-3 editor-box" :class="{'edit-mode' : isEditMode}">
-                            <code-mirror
-                                ref="editor"
-                                v-model="stack.composeENV"
-                                :extensions="extensionsEnv"
-                                minimal
-                                wrap="true"
-                                dark="true"
-                                tab="true"
-                                :disabled="!isEditMode"
-                                :hasFocus="editorFocus"
-                                @change="yamlCodeChange"
-                            />
-                        </div>
-                    </div>
-
-                    <div v-if="isEditMode">
-                        <!-- Volumes -->
-                        <div v-if="false">
-                            <h4 class="mb-3">{{ $tc("volume", 2) }}</h4>
-                            <div class="shadow-box big-padding mb-3">
-                            </div>
-                        </div>
-
-                        <!-- Networks -->
-                        <h4 class="mb-3">{{ $tc("network", 2) }}</h4>
-                        <div class="shadow-box big-padding mb-3">
-                            <NetworkInput />
-                        </div>
-                    </div>
-
-                    <!-- <div class="shadow-box big-padding mb-3">
-                        <div class="mb-3">
-                            <label for="name" class="form-label"> Search Templates</label>
-                            <input id="name" v-model="name" type="text" class="form-control" placeholder="Search..." required>
-                        </div>
-
-                        <prism-editor v-if="false" v-model="yamlConfig" class="yaml-editor" :highlight="highlighter" line-numbers @input="yamlCodeChange"></prism-editor>
-                    </div>-->
-                </div>
-            </div>
-
-            <div v-if="!stack.isManagedByDockge && !processing">
-                {{ $t("stackNotManagedByDockgeMsg") }}
-            </div>
-
-            <!-- Delete Dialog -->
-            <BModal v-model="showDeleteDialog" :cancelTitle="$t('cancel')" :okTitle="$t('deleteStack')" okVariant="danger" @ok="deleteDialog">
-                {{ $t("deleteStackMsg") }}
-            </BModal>
+        <div v-if="stack.isManagedByDockge" class="desktop-actions">
+            <button v-if="isEditMode" class="btn btn-primary" :disabled="processing || !!yamlError" @click="deployStack"><font-awesome-icon icon="rocket" /> {{ $t("deployStack") }}</button>
+            <button v-if="isEditMode" class="btn btn-normal" :disabled="processing || !!yamlError" @click="saveStack"><font-awesome-icon icon="save" /> {{ $t("saveStackDraft") }}</button>
+            <button v-if="!isEditMode" class="btn btn-secondary" :disabled="processing" @click="enableEditMode"><font-awesome-icon icon="pen" /> {{ $t("editStack") }}</button>
+            <button v-if="!isEditMode && !active" class="btn btn-primary" :disabled="processing" @click="startStack"><font-awesome-icon icon="play" /> {{ $t("startStack") }}</button>
+            <button v-if="!isEditMode && active" class="btn btn-normal" :disabled="processing" @click="restartStack"><font-awesome-icon icon="rotate" /> {{ $t("restartStack") }}</button>
+            <button v-if="!isEditMode" class="btn btn-normal" :disabled="processing" @click="updateStack"><font-awesome-icon icon="cloud-arrow-down" /> {{ $t("updateStack") }}</button>
+            <button v-if="!isEditMode && active" class="btn btn-normal" :disabled="processing" @click="stopStack"><font-awesome-icon icon="stop" /> {{ $t("stopStack") }}</button>
+            <button v-if="isEditMode && !isAdd" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
         </div>
-    </transition>
+
+        <div v-if="urls.length" class="stack-urls"><a v-for="(urlItem, index) in urls" :key="index" target="_blank" :href="urlItem.url" class="badge bg-secondary">{{ urlItem.display }}</a></div>
+
+        <Terminal v-show="showProgressTerminal" ref="progressTerminal" class="progress-terminal" :name="terminalName" :endpoint="endpoint" :rows="progressTerminalRows" @has-data="showProgressTerminal = true; submitted = true;" />
+
+        <div v-if="stack.isManagedByDockge" class="workspace" :style="workspaceStyle">
+            <section v-show="showRuntimePane" class="runtime-pane">
+                <div class="pane-toolbar">
+                    <strong>{{ $root.isMobile && mobileView === 'logs' ? $t("terminal") : $tc("container", 2) }}</strong>
+                    <button v-if="!$root.isMobile" class="pane-control" :aria-label="focusPane === 'runtime' ? 'Restore workspace' : 'Maximize runtime'" @click="toggleFocus('runtime')">{{ focusPane === "runtime" ? "↙" : "↗" }}</button>
+                </div>
+
+                <div v-show="!$root.isMobile || mobileView === 'status'" class="runtime-content">
+                    <div v-if="$root.isMobile && !isAdd" class="mobile-primary-actions">
+                        <button v-if="!active" class="btn btn-primary" :disabled="processing" @click="startStack"><font-awesome-icon icon="play" /> {{ $t("startStack") }}</button>
+                        <button v-if="active" class="btn btn-normal" :disabled="processing" @click="stopStack"><font-awesome-icon icon="stop" /> {{ $t("stopStack") }}</button>
+                        <button class="btn btn-normal" :disabled="processing" @click="updateStack"><font-awesome-icon icon="cloud-arrow-down" /> {{ $t("updateStack") }}</button>
+                    </div>
+                    <div v-if="isAdd" class="general-fields">
+                        <label for="name" class="form-label">{{ $t("stackName") }}</label>
+                        <input id="name" v-model="stack.name" type="text" class="form-control" required @blur="stackNameToLowercase">
+                        <label class="form-label mt-3">{{ $t("dockgeAgent") }}</label>
+                        <select v-model="stack.endpoint" class="form-select"><option v-for="(agent, agentEndpoint) in $root.agentList" :key="agentEndpoint" :value="agentEndpoint" :disabled="$root.agentStatusList[agentEndpoint] != 'online'">({{ $root.agentStatusList[agentEndpoint] }}) {{ agent.name || agent.url || $t("Current") }}</option></select>
+                    </div>
+                    <div v-if="isEditMode" class="input-group add-container">
+                        <input v-model="newContainerName" :placeholder="$t('New Container Name...')" class="form-control" @keyup.enter="addContainer">
+                        <button class="btn btn-primary" @click="addContainer">{{ $t("addContainer") }}</button>
+                    </div>
+                    <div ref="containerList" class="container-list">
+                        <Container v-for="(service, name) in jsonConfig.services" :key="name" :name="name" :is-edit-mode="isEditMode" :first="name === Object.keys(jsonConfig.services)[0]" :serviceStatus="serviceStatusList[name]" :dockerStats="dockerStats" @start-service="startService" @stop-service="stopService" @restart-service="restartService" />
+                    </div>
+                    <div v-if="isEditMode" class="extra-settings shadow-box"><label class="form-label">{{ $tc("url", 2) }}</label><ArrayInput name="urls" :display-name="$t('url')" placeholder="https://" object-type="x-dockge" /></div>
+                </div>
+
+                <div v-show="!$root.isMobile || mobileView === 'logs'" class="logs-content">
+                    <Terminal v-if="!isAdd" ref="combinedTerminal" class="terminal" :name="combinedTerminalName" :endpoint="endpoint" :rows="combinedTerminalRows" :cols="combinedTerminalCols" />
+                </div>
+            </section>
+
+            <div v-if="!$root.isMobile && focusPane === 'none'" class="splitter" role="separator" aria-orientation="horizontal" :aria-valuenow="splitPercent" tabindex="0" @pointerdown="startResize" @keydown.up.prevent="adjustSplit(-5)" @keydown.down.prevent="adjustSplit(5)"><span></span></div>
+
+            <section v-show="showEditorPane" class="editor-pane">
+                <div class="editor-tabs" role="tablist" aria-label="Stack configuration">
+                    <button v-for="tab in editorTabs" :key="tab.id" role="tab" :aria-selected="editorTab === tab.id" :class="{ active: editorTab === tab.id }" @click="editorTab = tab.id">{{ tab.label }}</button>
+                    <span v-if="isDirty" class="dirty-indicator" title="Unsaved changes">●</span>
+                    <button v-if="!$root.isMobile" class="pane-control ms-auto" :aria-label="focusPane === 'editor' ? 'Restore workspace' : 'Maximize editor'" @click="toggleFocus('editor')">{{ focusPane === "editor" ? "↙" : "↗" }}</button>
+                </div>
+
+                <div class="editor-content">
+                    <div v-show="editorTab === 'compose'" class="editor-view">
+                        <code-mirror ref="editor" v-model="stack.composeYAML" :extensions="extensions" minimal :wrap="false" dark tab :disabled="!isEditMode" :hasFocus="editorFocus" @change="yamlCodeChange" />
+                        <div v-if="yamlError" class="validation-error" role="alert">{{ yamlError }}</div>
+                    </div>
+                    <div v-show="editorTab === 'environment'" class="editor-view">
+                        <code-mirror v-model="stack.composeENV" :extensions="extensionsEnv" minimal :wrap="false" dark tab :disabled="!isEditMode" :hasFocus="editorFocus" @change="yamlCodeChange" />
+                    </div>
+                    <div v-show="editorTab === 'network'" class="network-view"><div class="shadow-box"><NetworkInput /></div></div>
+                </div>
+            </section>
+        </div>
+
+        <section v-if="$root.isMobile && mobileView === 'more'" class="mobile-more">
+            <button v-if="!isEditMode" class="btn btn-normal" :disabled="processing" @click="restartStack"><font-awesome-icon icon="rotate" /> {{ $t("restartStack") }}</button>
+            <button class="btn btn-normal" :disabled="processing" @click="downStack"><font-awesome-icon icon="stop" /> {{ $t("downStack") }}</button>
+            <button v-if="!isEditMode" class="btn btn-danger" :disabled="processing" @click="showDeleteDialog = true"><font-awesome-icon icon="trash" /> {{ $t("deleteStack") }}</button>
+        </section>
+
+        <div v-if="$root.isMobile && (isAdd || mobileView === 'edit') && isEditMode" class="mobile-action-bar">
+            <span class="save-state">{{ isDirty ? "Unsaved" : "Saved" }}</span>
+            <button class="btn btn-normal" :disabled="processing || !!yamlError || !isDirty" @click="saveStack"><font-awesome-icon icon="save" /> {{ $t("saveStackDraft") }}</button>
+            <button class="btn btn-primary" :disabled="processing || !!yamlError" @click="deployStack"><font-awesome-icon icon="rocket" /> {{ $t("deployStack") }}</button>
+        </div>
+
+        <nav v-if="$root.isMobile && !isAdd" class="mobile-bottom-nav" aria-label="Stack sections">
+            <button v-for="item in mobileNav" :key="item.id" :class="{ active: mobileView === item.id }" @click="selectMobileView(item.id)"><font-awesome-icon :icon="item.icon" /><span>{{ item.label }}</span></button>
+        </nav>
+
+        <div v-if="!stack.isManagedByDockge && !processing" class="not-managed">{{ $t("stackNotManagedByDockgeMsg") }}</div>
+        <BModal v-model="showDeleteDialog" :cancelTitle="$t('cancel')" :okTitle="$t('deleteStack')" okVariant="danger" @ok="deleteDialog">{{ $t("deleteStackMsg") }}</BModal>
+    </div>
 </template>
 
 <script>
@@ -344,9 +200,59 @@ export default {
             newContainerName: "",
             stopServiceStatusTimeout: false,
             stopDockerStatsTimeout: false,
+            editorTab: "compose",
+            mobileView: "status",
+            focusPane: "none",
+            splitPercent: Number(localStorage.getItem("dockgeWorkspaceSplit")) || 40,
+            savedComposeYAML: "",
+            savedComposeENV: "",
         };
     },
     computed: {
+        editorTabs() {
+            return [
+                { id: "compose",
+                    label: "Compose" },
+                { id: "environment",
+                    label: "Environment" },
+                { id: "network",
+                    label: this.$tc("network", 2) },
+            ];
+        },
+
+        mobileNav() {
+            return [
+                { id: "status",
+                    label: "Status",
+                    icon: "heartbeat" },
+                { id: "logs",
+                    label: "Logs",
+                    icon: "terminal" },
+                { id: "edit",
+                    label: "Edit",
+                    icon: "pen" },
+                { id: "more",
+                    label: "More",
+                    icon: "list" },
+            ];
+        },
+
+        isDirty() {
+            return this.stack.composeYAML !== this.savedComposeYAML || this.stack.composeENV !== this.savedComposeENV;
+        },
+
+        workspaceStyle() {
+            return { "--runtime-size": `${this.splitPercent}%` };
+        },
+
+        showRuntimePane() {
+            return !this.$root.isMobile || (!this.isAdd && (this.mobileView === "status" || this.mobileView === "logs"));
+        },
+
+        showEditorPane() {
+            return !this.$root.isMobile || this.isAdd || this.mobileView === "edit";
+        },
+
         endpointDisplay() {
             return this.$root.endpointDisplayFunction(this.endpoint);
         },
@@ -503,6 +409,8 @@ export default {
             };
 
             this.yamlCodeChange();
+            this.savedComposeYAML = "";
+            this.savedComposeENV = "";
 
         } else {
             this.stack.name = this.$route.params.stackName;
@@ -513,7 +421,7 @@ export default {
         this.requestDockerStats();
     },
     unmounted() {
-
+        this.stopResize();
     },
     methods: {
         startServiceStatusTimeout() {
@@ -592,6 +500,8 @@ export default {
             this.$root.emitAgent(this.endpoint, "getStack", this.stack.name, (res) => {
                 if (res.ok) {
                     this.stack = res.stack;
+                    this.savedComposeYAML = res.stack.composeYAML;
+                    this.savedComposeENV = res.stack.composeENV;
                     this.yamlCodeChange();
                     this.processing = false;
                     this.bindTerminal();
@@ -638,6 +548,8 @@ export default {
                 this.$root.toastRes(res);
 
                 if (res.ok) {
+                    this.savedComposeYAML = this.stack.composeYAML;
+                    this.savedComposeENV = this.stack.composeENV;
                     this.isEditMode = false;
                     this.$router.push(this.url);
                 }
@@ -652,6 +564,8 @@ export default {
                 this.$root.toastRes(res);
 
                 if (res.ok) {
+                    this.savedComposeYAML = this.stack.composeYAML;
+                    this.savedComposeENV = this.stack.composeENV;
                     this.isEditMode = false;
                     this.$router.push(this.url);
                 }
@@ -772,6 +686,46 @@ export default {
             this.isEditMode = true;
         },
 
+        selectMobileView(view) {
+            this.mobileView = view;
+            if (view === "edit" && !this.isEditMode) {
+                this.enableEditMode();
+            }
+            this.$nextTick(() => this.$refs.combinedTerminal?.updateTerminalSize?.());
+        },
+
+        toggleFocus(pane) {
+            this.focusPane = this.focusPane === pane ? "none" : pane;
+            this.$nextTick(() => this.$refs.combinedTerminal?.updateTerminalSize?.());
+        },
+
+        adjustSplit(amount) {
+            this.splitPercent = Math.min(70, Math.max(25, this.splitPercent + amount));
+            localStorage.setItem("dockgeWorkspaceSplit", String(this.splitPercent));
+        },
+
+        startResize(event) {
+            event.preventDefault();
+            this.resizeWorkspace = event.currentTarget.parentElement;
+            window.addEventListener("pointermove", this.resizeWorkspacePanes);
+            window.addEventListener("pointerup", this.stopResize, { once: true });
+        },
+
+        resizeWorkspacePanes(event) {
+            const bounds = this.resizeWorkspace.getBoundingClientRect();
+            const percent = ((event.clientY - bounds.top) / bounds.height) * 100;
+            this.splitPercent = Math.min(70, Math.max(25, Math.round(percent)));
+        },
+
+        stopResize() {
+            window.removeEventListener("pointermove", this.resizeWorkspacePanes);
+            window.removeEventListener("pointerup", this.stopResize);
+            if (this.splitPercent) {
+                localStorage.setItem("dockgeWorkspaceSplit", String(this.splitPercent));
+            }
+            this.resizeWorkspace = null;
+        },
+
         checkYAML() {
 
         },
@@ -849,17 +803,83 @@ export default {
 <style scoped lang="scss">
 @import "../styles/vars.scss";
 
-.terminal {
-    height: 200px;
+.stack-page { height: calc(100dvh - 112px); min-height: 600px; display: flex; flex-direction: column; min-width: 0; }
+.stack-header { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; margin-bottom: 8px; }
+.stack-title { min-width: 0; display: flex; align-items: center; gap: 12px; }
+.stack-title h1 { margin: 0; overflow: hidden; font-size: 25px; text-overflow: ellipsis; white-space: nowrap; }
+.stack-state { white-space: nowrap; }
+.desktop-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.desktop-actions .btn { padding: 7px 12px; }
+.stack-urls { display: flex; gap: 6px; margin-bottom: 6px; overflow-x: auto; }
+.progress-terminal { flex: 0 0 150px; margin-bottom: 8px; overflow: hidden; }
+.workspace { display: grid; grid-template-rows: minmax(150px, var(--runtime-size)) 8px minmax(220px, 1fr); flex: 1 1 auto; min-height: 0; border: 1px solid #dee2e6; border-radius: 10px; overflow: hidden; }
+.runtime-pane, .editor-pane { min-height: 0; min-width: 0; overflow: hidden; background: rgba(255,255,255,.35); }
+.runtime-pane { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(360px, 1fr); grid-template-rows: 42px minmax(0, 1fr); }
+.pane-toolbar { grid-column: 1 / -1; display: flex; align-items: center; padding: 0 12px; border-bottom: 1px solid #dee2e6; }
+.pane-control { min-width: 44px; min-height: 38px; margin-left: auto; border: 0; color: inherit; background: transparent; font-size: 20px; }
+.runtime-content, .logs-content { min-width: 0; min-height: 0; padding: 10px; overflow: auto; }
+.logs-content { border-left: 1px solid #dee2e6; }
+.terminal { height: 100%; min-height: 180px; overflow: hidden; }
+.add-container { margin-bottom: 10px; }
+.extra-settings { margin-top: 10px; }
+.splitter { display: grid; cursor: row-resize; background: #e9ecef; place-items: center; touch-action: none; }
+.splitter span { width: 48px; height: 3px; border-radius: 2px; background: #9aa1a8; }
+.editor-pane { display: flex; flex-direction: column; }
+.editor-tabs { display: flex; flex: 0 0 44px; align-items: stretch; gap: 2px; padding: 3px 6px 0; border-bottom: 1px solid #dee2e6; overflow-x: auto; }
+.editor-tabs > button:not(.pane-control) { min-width: 100px; padding: 0 14px; border: 0; border-bottom: 3px solid transparent; color: inherit; background: transparent; font-weight: 600; }
+.editor-tabs > button.active { border-bottom-color: $primary; color: $primary; }
+.dirty-indicator { align-self: center; color: $warning; font-size: 12px; }
+.editor-content, .editor-view { flex: 1; min-width: 0; min-height: 0; height: 100%; overflow: hidden; }
+.editor-view { position: relative; font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+.editor-view :deep(.vue-codemirror), .editor-view :deep(.cm-editor) { height: 100%; }
+.editor-view :deep(.cm-scroller) { overflow: auto; font-family: 'JetBrains Mono', monospace; }
+.validation-error { position: absolute; right: 12px; bottom: 10px; max-width: calc(100% - 24px); padding: 6px 10px; border-radius: 5px; color: white; background: $danger; font: 12px BlinkMacSystemFont, sans-serif; }
+.network-view { height: 100%; padding: 14px; overflow: auto; }
+.focus-editor .workspace { grid-template-rows: 1fr; }
+.focus-editor .runtime-pane, .focus-editor .splitter, .focus-runtime .editor-pane, .focus-runtime .splitter { display: none; }
+.focus-runtime .workspace { grid-template-rows: 1fr; }
+:global(.dark) .workspace, :global(.dark) .pane-toolbar, :global(.dark) .logs-content, :global(.dark) .editor-tabs { border-color: $dark-border-color; }
+:global(.dark) .runtime-pane, :global(.dark) .editor-pane { background: $dark-bg; }
+:global(.dark) .splitter { background: $dark-bg2; }
+.icon-link, .icon-button { display: grid; width: 44px; height: 44px; padding: 0; border: 0; color: inherit; background: transparent; font-size: 28px; text-decoration: none; place-items: center; }
+
+@media (max-width: 767.98px) {
+    .stack-page { min-height: 0; height: 100dvh; padding: max(8px, env(safe-area-inset-top)) 8px calc(68px + env(safe-area-inset-bottom)); overflow: hidden; }
+    .stack-header { min-height: 48px; margin: 0; }
+    .stack-title { flex: 1; }
+    .stack-title h1 { font-size: 20px; }
+    .stack-state { font-size: 12px; }
+    .desktop-actions, .stack-urls { display: none; }
+    .progress-terminal { position: absolute; inset: 56px 8px 70px; z-index: 10; margin: 0; }
+    .workspace { display: block; flex: 1; border: 0; border-radius: 0; overflow: hidden; }
+    .runtime-pane, .editor-pane { height: 100%; }
+    .runtime-pane { display: flex; flex-direction: column; }
+    .pane-toolbar { flex: 0 0 42px; }
+    .runtime-content, .logs-content { flex: 1; padding: 8px 0; border: 0; -webkit-overflow-scrolling: touch; }
+    .mobile-primary-actions { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; }
+    .mobile-primary-actions .btn { min-height: 44px; flex: 0 0 auto; }
+    .terminal { min-height: 0; height: 100%; border-radius: 0; }
+    .editor-tabs { flex-basis: 48px; padding: 0; }
+    .editor-tabs > button:not(.pane-control) { min-width: 105px; min-height: 44px; }
+    .editor-view { font-size: 16px; }
+    .editor-view :deep(.cm-content) { padding-bottom: 90px; caret-color: white; }
+    .editor-view :deep(.cm-line) { padding-left: 4px; }
+    .network-view { padding: 8px 0 88px; font-size: 16px; }
+    .network-view :deep(input), .network-view :deep(select) { min-height: 44px; font-size: 16px; }
+    .mobile-more { display: grid; align-content: start; gap: 12px; flex: 1; padding: 16px 4px; }
+    .mobile-more .btn { min-height: 48px; text-align: left; }
+    .mobile-action-bar { position: fixed; right: 0; bottom: calc(60px + env(safe-area-inset-bottom)); left: 0; z-index: 50; display: flex; align-items: center; gap: 6px; min-height: 58px; padding: 6px 8px; border-top: 1px solid #dee2e6; background: white; }
+    .mobile-action-bar .save-state { margin-right: auto; font-size: 12px; }
+    .mobile-action-bar .btn { min-height: 44px; padding: 6px 10px; }
+    .mobile-bottom-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 60; display: grid; grid-template-columns: repeat(4, 1fr); height: calc(60px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid #dee2e6; background: white; }
+    .mobile-bottom-nav button { display: flex; min-width: 0; min-height: 60px; align-items: center; justify-content: center; flex-direction: column; gap: 2px; border: 0; color: #737980; background: transparent; font-size: 11px; }
+    .mobile-bottom-nav button svg { font-size: 18px; }
+    .mobile-bottom-nav button.active { color: $primary; font-weight: bold; }
+    :global(.dark) .mobile-action-bar, :global(.dark) .mobile-bottom-nav { border-color: $dark-border-color; color: $dark-font-color; background: $dark-bg; }
+    .modal-dialog { max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)); margin: max(8px, env(safe-area-inset-top)) 8px; }
 }
 
-.editor-box {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 14px;
-}
-
-.agent-name {
-    font-size: 13px;
-    color: $dark-font-color3;
-}
+@media (max-width: 430px) { .mobile-action-bar .save-state { display: none; } }
+@media (max-width: 350px) { .mobile-action-bar .btn { font-size: 12px; } .stack-state { display: none; } }
+@media (max-width: 900px) and (orientation: landscape) { .stack-page { padding-top: 4px; } .stack-header { min-height: 40px; } }
 </style>
