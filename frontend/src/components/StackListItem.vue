@@ -183,7 +183,7 @@ export default {
         .title {
             flex: 1 1 auto;
             min-width: 0;
-            font-size: 16px;
+            font-size: 17px;
             font-weight: 400;
 
             span {
@@ -195,10 +195,10 @@ export default {
         }
 
         :deep(.badge) {
-            width: 62px;
-            min-width: 62px;
+            width: 70px;
+            min-width: 70px;
             padding: 4.2px 7.8px;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 700;
             line-height: 1;
         }
