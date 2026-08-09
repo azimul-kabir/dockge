@@ -177,7 +177,7 @@
                     </section>
                 </div>
 
-                <section class="stack-section" aria-labelledby="compose-heading">
+                <section ref="composeSection" class="stack-section" aria-labelledby="compose-heading">
                     <div class="stack-section-heading editor-heading">
                         <h2 id="compose-heading">Compose</h2>
                         <button type="button" class="btn btn-sm btn-normal wrap-toggle" :aria-pressed="composeWrapEnabled" @click="composeWrapEnabled = !composeWrapEnabled">
@@ -188,7 +188,7 @@
                     <h4 class="mb-3 stack-section-filename">{{ stack.composeFileName }}</h4>
 
                     <!-- YAML editor -->
-                    <div class="shadow-box mb-3 editor-box" :class="{'edit-mode' : isEditMode}">
+                    <div class="shadow-box mb-3 editor-box" :class="{ 'edit-mode': isEditMode, 'keyboard-active-editor-box': mobileKeyboardOpen && activeEditorSection === 'compose' }">
                         <code-mirror
                             ref="editor"
                             v-model="stack.composeYAML"
@@ -207,7 +207,7 @@
                     </div>
                 </section>
 
-                <section class="stack-section" aria-labelledby="environment-heading">
+                <section ref="environmentSection" class="stack-section" aria-labelledby="environment-heading">
                     <div class="stack-section-heading editor-heading">
                         <h2 id="environment-heading">Environment</h2>
                         <button type="button" class="btn btn-sm btn-normal wrap-toggle" :aria-pressed="environmentWrapEnabled" @click="environmentWrapEnabled = !environmentWrapEnabled">
@@ -216,7 +216,7 @@
                     </div>
                     <div id="environment-mobile-actions" class="mobile-editor-actions-slot"></div>
                     <h4 class="mb-3 stack-section-filename">.env</h4>
-                    <div class="shadow-box mb-3 editor-box" :class="{'edit-mode' : isEditMode}">
+                    <div class="shadow-box mb-3 editor-box" :class="{ 'edit-mode': isEditMode, 'keyboard-active-editor-box': mobileKeyboardOpen && activeEditorSection === 'environment' }">
                         <code-mirror
                             ref="envEditor"
                             v-model="stack.composeENV"
@@ -380,6 +380,8 @@ export default {
             environmentWrapEnabled: window.matchMedia("(max-width: 767.98px)").matches,
             mobileKeyboardOffset: 0,
             mobileVisualTop: 0,
+            mobileEditorHeight: 0,
+            mobileEditorNeedsAlignment: true,
             activeEditorSection: "compose",
         };
     },
@@ -447,7 +449,12 @@ export default {
             return {
                 "--mobile-keyboard-offset": `${this.mobileKeyboardOffset}px`,
                 "--mobile-visual-top": `${this.mobileVisualTop}px`,
+                "--mobile-editor-height": `${this.mobileEditorHeight}px`,
             };
+        },
+
+        mobileKeyboardOpen() {
+            return this.mobileKeyboardOffset > 0;
         },
 
         mobileEditorActionsTarget() {
@@ -581,6 +588,8 @@ export default {
             if (!window.matchMedia("(max-width: 767.98px)").matches || !window.visualViewport) {
                 this.mobileKeyboardOffset = 0;
                 this.mobileVisualTop = 0;
+                this.mobileEditorHeight = 0;
+                this.mobileEditorNeedsAlignment = true;
                 return;
             }
 
@@ -591,11 +600,39 @@ export default {
             this.mobileVisualTop = this.mobileKeyboardOffset ? viewport.offsetTop : 0;
 
             if (this.mobileKeyboardOffset) {
-                requestAnimationFrame(() => {
+                const actionBar = this.$el.querySelector(".mobile-editor-actions");
+                const activeSection = this.$refs[`${this.activeEditorSection}Section`];
+                const heading = activeSection?.querySelector(".editor-heading");
+                const filename = activeSection?.querySelector(".stack-section-filename");
+                const reservedHeight = (heading?.offsetHeight || 52) + (actionBar?.offsetHeight || 60) + (filename?.offsetHeight || 24) + 40;
+                const availableEditorHeight = viewport.height - reservedHeight;
+                this.mobileEditorHeight = Math.min(280, Math.max(200, availableEditorHeight));
+
+                this.$nextTick(() => requestAnimationFrame(() => {
                     const editorRef = activeEditor === this.$refs.editor?.view?.dom
                         ? this.$refs.editor
                         : this.$refs.envEditor;
                     const cursorPosition = editorRef?.view?.state.selection.main.head;
+                    editorRef?.view?.requestMeasure();
+                    if (cursorPosition !== undefined) {
+                        editorRef.view.dispatch({
+                            effects: EditorView.scrollIntoView(cursorPosition, {
+                                y: "nearest",
+                                yMargin: 12
+                            })
+                        });
+                    }
+
+                    const sectionRect = activeSection?.getBoundingClientRect();
+                    const visibleTop = viewport.offsetTop + 8;
+                    if (this.mobileEditorNeedsAlignment && sectionRect && Math.abs(sectionRect.top - visibleTop) > 8) {
+                        window.scrollBy({
+                            top: sectionRect.top - visibleTop,
+                            behavior: "auto"
+                        });
+                    }
+                    this.mobileEditorNeedsAlignment = false;
+
                     const cursorRect = cursorPosition === undefined
                         ? activeEditor.getBoundingClientRect()
                         : editorRef.view.coordsAtPos(cursorPosition);
@@ -606,13 +643,17 @@ export default {
                             behavior: "auto"
                         });
                     }
-                });
+                }));
+            } else {
+                this.mobileEditorHeight = 0;
+                this.mobileEditorNeedsAlignment = true;
             }
         },
 
         setActiveEditorSection(section, focused) {
-            if (focused) {
+            if (focused && this.activeEditorSection !== section) {
                 this.activeEditorSection = section;
+                this.mobileEditorNeedsAlignment = true;
             }
         },
 
@@ -1157,6 +1198,14 @@ export default {
         max-width: 100%;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+    }
+
+    .keyboard-active-editor-box,
+    .keyboard-active-editor-box :deep(.vue-codemirror),
+    .keyboard-active-editor-box :deep(.cm-editor),
+    .keyboard-active-editor-box :deep(.cm-scroller) {
+        height: var(--mobile-editor-height);
+        min-height: var(--mobile-editor-height);
     }
 
     .shadow-box.big-padding {
