@@ -323,10 +323,20 @@ export default {
         BModal,
     },
     beforeRouteUpdate(to, from, next) {
-        this.exitConfirm(next);
+        console.log("[compose-debug] beforeRouteUpdate", {
+            from: from.fullPath,
+            to: to.fullPath,
+            isEditMode: this.isEditMode,
+        });
+        this.exitConfirm(next, "beforeRouteUpdate");
     },
     beforeRouteLeave(to, from, next) {
-        this.exitConfirm(next);
+        console.log("[compose-debug] beforeRouteLeave", {
+            from: from.fullPath,
+            to: to.fullPath,
+            isEditMode: this.isEditMode,
+        });
+        this.exitConfirm(next, "beforeRouteLeave");
     },
     setup() {
         const editorFocus = ref(false);
@@ -540,6 +550,7 @@ export default {
         }
     },
     mounted() {
+        console.log("[compose-debug] mounted", this.$route.fullPath);
         if (this.isAdd) {
             this.processing = false;
             this.isEditMode = true;
@@ -583,6 +594,7 @@ export default {
         window.addEventListener("orientationchange", this.updateMobileViewport);
     },
     unmounted() {
+        console.log("[compose-debug] unmounted", this.$route.fullPath);
         window.visualViewport?.removeEventListener("resize", this.updateMobileViewport);
         window.visualViewport?.removeEventListener("scroll", this.updateMobileViewport);
         window.removeEventListener("orientationchange", this.updateMobileViewport);
@@ -707,17 +719,28 @@ export default {
             });
         },
 
-        exitConfirm(next) {
+        exitConfirm(next, guardName) {
             if (this.isEditMode) {
-                if (confirm(this.$t("confirmLeaveStack"))) {
+                const confirmed = confirm(this.$t("confirmLeaveStack"));
+                console.log("[compose-debug] confirmation", {
+                    guard: guardName,
+                    confirmed,
+                });
+                if (confirmed) {
                     this.exitAction();
+                    console.log("[compose-debug] before next()", guardName);
                     next();
+                    console.log("[compose-debug] after next()", guardName);
                 } else {
+                    console.log("[compose-debug] before next(false)", guardName);
                     next(false);
+                    console.log("[compose-debug] after next(false)", guardName);
                 }
             } else {
                 this.exitAction();
+                console.log("[compose-debug] before next()", guardName);
                 next();
+                console.log("[compose-debug] after next()", guardName);
             }
         },
 
@@ -868,7 +891,19 @@ export default {
         },
 
         cancelStack() {
-            this.$router.push("/");
+            const target = "/";
+            console.log("[compose-debug] cancelStack", {
+                from: this.$route.fullPath,
+                target,
+            });
+            this.$router.push(target).then((failure) => {
+                console.log("[compose-debug] router.push resolved", {
+                    failure,
+                    finalPath: this.$route.fullPath,
+                });
+            }).catch((error) => {
+                console.error("[compose-debug] router.push rejected", error);
+            });
         },
 
         yamlToJSON(yaml) {
