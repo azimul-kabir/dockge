@@ -184,6 +184,7 @@
                             Wrap {{ composeWrapEnabled ? "On" : "Off" }}
                         </button>
                     </div>
+                    <div id="compose-mobile-actions" class="mobile-editor-actions-slot"></div>
                     <h4 class="mb-3 stack-section-filename">{{ stack.composeFileName }}</h4>
 
                     <!-- YAML editor -->
@@ -197,6 +198,7 @@
                             tab="true"
                             :disabled="!isEditMode"
                             :hasFocus="editorFocus"
+                            @focus="setActiveEditorSection('compose', $event)"
                             @change="yamlCodeChange"
                         />
                     </div>
@@ -212,6 +214,7 @@
                             Wrap {{ environmentWrapEnabled ? "On" : "Off" }}
                         </button>
                     </div>
+                    <div id="environment-mobile-actions" class="mobile-editor-actions-slot"></div>
                     <h4 class="mb-3 stack-section-filename">.env</h4>
                     <div class="shadow-box mb-3 editor-box" :class="{'edit-mode' : isEditMode}">
                         <code-mirror
@@ -223,10 +226,26 @@
                             tab="true"
                             :disabled="!isEditMode"
                             :hasFocus="editorFocus"
+                            @focus="setActiveEditorSection('environment', $event)"
                             @change="yamlCodeChange"
                         />
                     </div>
                 </section>
+
+                <Teleport v-if="isEditMode" :to="mobileEditorActionsTarget">
+                    <div class="mobile-editor-actions" aria-label="Editor actions">
+                        <button v-if="!isAdd" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
+                        <button v-else class="btn btn-normal" :disabled="processing" @click="cancelStack">{{ $t("cancel") }}</button>
+                        <button class="btn btn-normal" :disabled="processing" @click="saveStack">
+                            <font-awesome-icon icon="save" class="me-1" />
+                            {{ $t("saveStackDraft") }}
+                        </button>
+                        <button class="btn btn-primary" :disabled="processing" @click="deployStack">
+                            <font-awesome-icon icon="rocket" class="me-1" />
+                            {{ $t("deployStack") }}
+                        </button>
+                    </div>
+                </Teleport>
 
                 <section class="stack-section" aria-labelledby="networks-heading">
                     <h2 id="networks-heading" class="stack-section-heading">Networks</h2>
@@ -360,6 +379,8 @@ export default {
             composeWrapEnabled: window.matchMedia("(max-width: 767.98px)").matches,
             environmentWrapEnabled: window.matchMedia("(max-width: 767.98px)").matches,
             mobileKeyboardOffset: 0,
+            mobileVisualTop: 0,
+            activeEditorSection: "compose",
         };
     },
     computed: {
@@ -425,7 +446,12 @@ export default {
         mobileViewportStyle() {
             return {
                 "--mobile-keyboard-offset": `${this.mobileKeyboardOffset}px`,
+                "--mobile-visual-top": `${this.mobileVisualTop}px`,
             };
+        },
+
+        mobileEditorActionsTarget() {
+            return `#${this.activeEditorSection}-mobile-actions`;
         },
 
         terminalName() {
@@ -554,6 +580,7 @@ export default {
         updateMobileViewport() {
             if (!window.matchMedia("(max-width: 767.98px)").matches || !window.visualViewport) {
                 this.mobileKeyboardOffset = 0;
+                this.mobileVisualTop = 0;
                 return;
             }
 
@@ -561,10 +588,10 @@ export default {
             const activeEditor = document.activeElement?.closest?.(".cm-editor");
             const keyboardOffset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
             this.mobileKeyboardOffset = keyboardOffset > 80 && activeEditor ? keyboardOffset : 0;
+            this.mobileVisualTop = this.mobileKeyboardOffset ? viewport.offsetTop : 0;
 
             if (this.mobileKeyboardOffset) {
                 requestAnimationFrame(() => {
-                    const actionBar = this.$el.querySelector(".mobile-edit-actions");
                     const editorRef = activeEditor === this.$refs.editor?.view?.dom
                         ? this.$refs.editor
                         : this.$refs.envEditor;
@@ -572,7 +599,7 @@ export default {
                     const cursorRect = cursorPosition === undefined
                         ? activeEditor.getBoundingClientRect()
                         : editorRef.view.coordsAtPos(cursorPosition);
-                    const visibleBottom = viewport.offsetTop + viewport.height - (actionBar?.offsetHeight || 0) - 8;
+                    const visibleBottom = viewport.offsetTop + viewport.height - 8;
                     if (cursorRect?.bottom > visibleBottom) {
                         window.scrollBy({
                             top: cursorRect.bottom - visibleBottom,
@@ -580,6 +607,12 @@ export default {
                         });
                     }
                 });
+            }
+        },
+
+        setActiveEditorSection(section, focused) {
+            if (focused) {
+                this.activeEditorSection = section;
             }
         },
 
@@ -1024,6 +1057,10 @@ export default {
     font-size: 14px;
 }
 
+.mobile-editor-actions-slot {
+    display: none;
+}
+
 .agent-name {
     font-size: 13px;
     color: $dark-font-color3;
@@ -1055,64 +1092,40 @@ export default {
     }
 
     .stack-actions.mobile-edit-actions {
-        position: fixed;
-        right: 0;
-        bottom: 0;
-        left: 0;
-        z-index: 20;
-        margin: 0 !important;
-        padding: 0.5rem max(10px, env(safe-area-inset-right)) max(0.5rem, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+        display: none;
+    }
+
+    .mobile-editor-actions-slot {
+        display: block;
+        min-width: 0;
+    }
+
+    .mobile-editor-actions {
+        display: flex;
+        position: sticky;
+        top: calc(var(--mobile-visual-top, 0px) + 8px);
+        z-index: 10;
+        gap: 0.5rem;
+        width: 100%;
+        min-width: 0;
+        margin: 0 0 0.75rem;
+        padding: 0.4rem;
+        border: 1px solid rgba(127, 127, 127, 0.2);
+        border-radius: 0.5rem;
         background: rgba(255, 255, 255, 0.96);
-        box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.08);
-        transform: translateY(calc(-1 * var(--mobile-keyboard-offset, 0px)));
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 
         .dark & {
             background: rgba($dark-bg2, 0.96);
         }
 
-        .btn {
-            min-height: 44px;
-        }
-    }
-
-    .mobile-edit-actions ~ .stack-workspace {
-        padding-bottom: calc(7rem + env(safe-area-inset-bottom));
-    }
-
-    .stack-primary-actions {
-        display: flex;
-        flex: 1 1 100%;
-        margin-right: 0 !important;
-
-        > .btn,
-        > :deep(.dropdown) {
-            flex: 1 1 auto;
-        }
-    }
-
-    .mobile-edit-actions .stack-primary-actions {
-        display: contents;
-
         > .btn {
             flex: 1 1 0;
+            min-width: 0;
+            min-height: 44px;
+            padding-right: 0.5rem;
+            padding-left: 0.5rem;
         }
-    }
-
-    .mobile-edit-actions .edit-cancel {
-        order: 1;
-        flex: 1 1 0;
-    }
-
-    .mobile-edit-actions .edit-save {
-        order: 2;
-    }
-
-    .mobile-edit-actions .edit-deploy {
-        order: 3;
-    }
-
-    .mobile-edit-actions :deep(.edit-more) {
-        display: none;
     }
 
     .stack-section {
