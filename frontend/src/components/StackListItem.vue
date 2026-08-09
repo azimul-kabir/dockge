@@ -182,8 +182,8 @@ export default {
     .item {
         box-sizing: border-box;
         min-width: 0;
-        min-height: 54px;
-        padding: 8px 10px;
+        min-height: 50px;
+        padding: 6px 10px;
         border: 1px solid transparent;
         border-radius: 9px;
         gap: 2px;
@@ -204,7 +204,7 @@ export default {
             flex: 1 1 auto;
             min-width: 0;
             margin-top: 0;
-            font-size: 16px;
+            font-size: 17px;
             font-weight: 500;
             line-height: 1.25;
 
@@ -223,9 +223,9 @@ export default {
             flex: 0 0 70px;
             width: 70px;
             min-width: 70px;
-            min-height: 24px;
+            min-height: 26px;
             padding: 4px 8px;
-            font-size: 12px;
+            font-size: 13px;
             line-height: 1;
         }
     }
