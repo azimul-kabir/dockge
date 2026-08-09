@@ -64,31 +64,9 @@
                 {{ $t("deleteContainer") }}
             </button>
         </div>
-        <div v-else-if="statsInstances.length > 0" class="mt-2">
-            <div class="d-flex align-items-center gap-3">
-                <template v-if="!expandedStats">
-                    <div class="stats">
-                        {{ $t('CPU') }}: {{ statsInstances[0].CPUPerc }}
-                    </div>
-                    <div class="stats">
-                        {{ $t('memoryAbbreviated') }}: {{ statsInstances[0].MemUsage }}
-                    </div>
-                </template>
-                <div class="d-flex flex-grow-1 justify-content-end">
-                    <button class="btn btn-sm btn-normal" @click="expandedStats = !expandedStats">
-                        <font-awesome-icon :icon="expandedStats ? 'chevron-up' : 'chevron-down'" />
-                    </button>
-                </div>
-            </div>
-            <transition name="slide-fade" appear>
-                <div v-if="expandedStats" class="d-flex flex-column gap-3 mt-2">
-                    <DockerStat
-                        v-for="stat in statsInstances"
-                        :key="stat.Name"
-                        :stat="stat"
-                    />
-                </div>
-            </transition>
+        <div v-else-if="statsInstances.length > 0" class="service-stats mt-2">
+            <span class="stats">{{ $t('CPU') }}: {{ statsInstances[0].CPUPerc }}</span>
+            <span class="stats">{{ $t('memoryAbbreviated') }}: {{ statsInstances[0].MemUsage }}</span>
         </div>
 
         <transition name="slide-fade" appear>
@@ -193,12 +171,10 @@
 import { defineComponent } from "vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { parseDockerPort } from "../../../common/util-common";
-import DockerStat from "./DockerStat.vue";
 
 export default defineComponent({
     components: {
-        FontAwesomeIcon,
-        DockerStat
+        FontAwesomeIcon
     },
     props: {
         name: {
@@ -230,7 +206,6 @@ export default defineComponent({
     data() {
         return {
             showConfig: false,
-            expandedStats: false,
         };
     },
     computed: {
@@ -418,6 +393,12 @@ export default defineComponent({
     .stats {
         font-size: 0.8rem;
         color: #6c757d;
+    }
+
+    .service-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 1rem;
     }
 }
 
