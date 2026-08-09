@@ -178,6 +178,33 @@ export default {
     opacity: 0.5;
 }
 
+@media (min-width: 768px) {
+    .item {
+        .title {
+            flex: 1 1 auto;
+            min-width: 0;
+            font-size: 16px;
+            font-weight: 400;
+
+            span {
+                display: block;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+        }
+
+        :deep(.badge) {
+            width: 62px;
+            min-width: 62px;
+            padding: 4.2px 7.8px;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1;
+        }
+    }
+}
+
 @media (max-width: 767.98px) {
     .item {
         box-sizing: border-box;
