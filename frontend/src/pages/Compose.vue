@@ -58,8 +58,8 @@
                     </BDropdown>
                 </div>
 
-                <button v-if="isEditMode && !isNewComposeRoute" class="btn btn-normal edit-cancel" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
-                <button v-if="isEditMode && isNewComposeRoute" class="btn btn-normal edit-cancel" :disabled="processing" @click="cancelStack">{{ $t("cancel") }}</button>
+                <button v-if="isEditMode && !isAdd" class="btn btn-normal edit-cancel" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
+                <button v-if="isEditMode && isAdd" class="btn btn-normal edit-cancel" :disabled="processing" @click="cancelStack">{{ $t("cancel") }}</button>
                 <button v-if="!isEditMode" class="btn btn-danger" :disabled="processing" @click="showDeleteDialog = !showDeleteDialog">
                     <font-awesome-icon icon="trash" class="me-1" />
                     {{ $t("deleteStack") }}
@@ -234,7 +234,7 @@
 
                 <Teleport v-if="isEditMode" :to="mobileEditorActionsTarget">
                     <div class="mobile-editor-actions" aria-label="Editor actions">
-                        <button v-if="!isNewComposeRoute" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
+                        <button v-if="!isAdd" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
                         <button v-else class="btn btn-normal" :disabled="processing" @click="cancelStack">{{ $t("cancel") }}</button>
                         <button class="btn btn-normal" :disabled="processing" @click="saveStack">
                             <font-awesome-icon icon="save" class="me-1" />
@@ -383,7 +383,6 @@ export default {
             mobileEditorHeight: 0,
             mobileEditorNeedsAlignment: true,
             activeEditorSection: "compose",
-            resettingNewCompose: false,
         };
     },
     computed: {
@@ -428,10 +427,6 @@ export default {
 
         isAdd() {
             return this.$route.path === "/compose" && !this.submitted;
-        },
-
-        isNewComposeRoute() {
-            return this.$route.path === "/compose";
         },
 
         /**
@@ -519,7 +514,7 @@ export default {
 
         jsonConfig: {
             handler() {
-                if (!this.editorFocus && !this.resettingNewCompose) {
+                if (!this.editorFocus) {
                     console.debug("jsonConfig changed");
 
                     let doc = new Document(this.jsonConfig);
@@ -712,51 +707,14 @@ export default {
             if (this.isEditMode) {
                 if (confirm(this.$t("confirmLeaveStack"))) {
                     this.exitAction();
-                    if (this.isNewComposeRoute) {
-                        this.resetNewComposeState();
-                    }
                     next();
                 } else {
                     next(false);
                 }
             } else {
                 this.exitAction();
-                if (this.isNewComposeRoute) {
-                    this.resetNewComposeState();
-                }
                 next();
             }
-        },
-
-        resetNewComposeState() {
-            this.resettingNewCompose = true;
-            this.$refs.editor?.view?.contentDOM.blur();
-            this.$refs.envEditor?.view?.contentDOM.blur();
-            this.editorFocus = false;
-            this.isEditMode = false;
-            this.submitted = false;
-            this.showProgressTerminal = false;
-            this.yamlError = "";
-            clearTimeout(yamlErrorTimeout);
-            this.yamlDoc = null;
-            this.jsonConfig = {};
-            this.envsubstJSONConfig = {};
-            this.newContainerName = "";
-            this.activeEditorSection = "compose";
-            this.mobileKeyboardOffset = 0;
-            this.mobileVisualTop = 0;
-            this.mobileEditorHeight = 0;
-            this.mobileEditorNeedsAlignment = true;
-            this.stack = {
-                name: "",
-                composeYAML: "",
-                composeENV: "",
-                isManagedByDockge: true,
-                endpoint: "",
-            };
-            this.$nextTick(() => {
-                this.resettingNewCompose = false;
-            });
         },
 
         exitAction() {
