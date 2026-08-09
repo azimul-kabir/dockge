@@ -1,6 +1,6 @@
 <template>
     <transition name="slide-fade" appear>
-        <div>
+        <div :style="mobileViewportStyle">
             <button v-if="!isAdd" type="button" class="btn btn-link back-to-stacks" @click="scrollToStacks">
                 <font-awesome-icon icon="chevron-up" class="me-1" />
                 Back to stacks
@@ -15,12 +15,12 @@
 
             <div v-if="stack.isManagedByDockge" class="stack-actions mb-3" :class="{ 'mobile-edit-actions': isEditMode }">
                 <div class="btn-group stack-primary-actions me-2" role="group">
-                    <button v-if="isEditMode" class="btn btn-primary" :disabled="processing" @click="deployStack">
+                    <button v-if="isEditMode" class="btn btn-primary edit-deploy" :disabled="processing" @click="deployStack">
                         <font-awesome-icon icon="rocket" class="me-1" />
                         {{ $t("deployStack") }}
                     </button>
 
-                    <button v-if="isEditMode" class="btn btn-normal" :disabled="processing" @click="saveStack">
+                    <button v-if="isEditMode" class="btn btn-normal edit-save" :disabled="processing" @click="saveStack">
                         <font-awesome-icon icon="save" class="me-1" />
                         {{ $t("saveStackDraft") }}
                     </button>
@@ -50,7 +50,7 @@
                         {{ $t("stopStack") }}
                     </button>
 
-                    <BDropdown right text="" variant="normal">
+                    <BDropdown right text="" variant="normal" class="edit-more">
                         <BDropdownItem @click="downStack">
                             <font-awesome-icon icon="stop" class="me-1" />
                             {{ $t("downStack") }}
@@ -58,8 +58,8 @@
                     </BDropdown>
                 </div>
 
-                <button v-if="isEditMode && !isAdd" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
-                <button v-if="isEditMode && isAdd" class="btn btn-normal" :disabled="processing" @click="cancelStack">{{ $t("cancel") }}</button>
+                <button v-if="isEditMode && !isAdd" class="btn btn-normal edit-cancel" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
+                <button v-if="isEditMode && isAdd" class="btn btn-normal edit-cancel" :disabled="processing" @click="cancelStack">{{ $t("cancel") }}</button>
                 <button v-if="!isEditMode" class="btn btn-danger" :disabled="processing" @click="showDeleteDialog = !showDeleteDialog">
                     <font-awesome-icon icon="trash" class="me-1" />
                     {{ $t("deleteStack") }}
@@ -359,6 +359,7 @@ export default {
             stopDockerStatsTimeout: false,
             composeWrapEnabled: window.matchMedia("(max-width: 767.98px)").matches,
             environmentWrapEnabled: window.matchMedia("(max-width: 767.98px)").matches,
+            mobileKeyboardOffset: 0,
         };
     },
     computed: {
@@ -419,6 +420,12 @@ export default {
 
         active() {
             return this.status === RUNNING;
+        },
+
+        mobileViewportStyle() {
+            return {
+                "--mobile-keyboard-offset": `${this.mobileKeyboardOffset}px`,
+            };
         },
 
         terminalName() {
@@ -534,11 +541,48 @@ export default {
 
         this.requestServiceStatus();
         this.requestDockerStats();
+        window.visualViewport?.addEventListener("resize", this.updateMobileViewport);
+        window.visualViewport?.addEventListener("scroll", this.updateMobileViewport);
+        window.addEventListener("orientationchange", this.updateMobileViewport);
     },
     unmounted() {
-
+        window.visualViewport?.removeEventListener("resize", this.updateMobileViewport);
+        window.visualViewport?.removeEventListener("scroll", this.updateMobileViewport);
+        window.removeEventListener("orientationchange", this.updateMobileViewport);
     },
     methods: {
+        updateMobileViewport() {
+            if (!window.matchMedia("(max-width: 767.98px)").matches || !window.visualViewport) {
+                this.mobileKeyboardOffset = 0;
+                return;
+            }
+
+            const viewport = window.visualViewport;
+            const activeEditor = document.activeElement?.closest?.(".cm-editor");
+            const keyboardOffset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+            this.mobileKeyboardOffset = keyboardOffset > 80 && activeEditor ? keyboardOffset : 0;
+
+            if (this.mobileKeyboardOffset) {
+                requestAnimationFrame(() => {
+                    const actionBar = this.$el.querySelector(".mobile-edit-actions");
+                    const editorRef = activeEditor === this.$refs.editor?.view?.dom
+                        ? this.$refs.editor
+                        : this.$refs.envEditor;
+                    const cursorPosition = editorRef?.view?.state.selection.main.head;
+                    const cursorRect = cursorPosition === undefined
+                        ? activeEditor.getBoundingClientRect()
+                        : editorRef.view.coordsAtPos(cursorPosition);
+                    const visibleBottom = viewport.offsetTop + viewport.height - (actionBar?.offsetHeight || 0) - 8;
+                    if (cursorRect?.bottom > visibleBottom) {
+                        window.scrollBy({
+                            top: cursorRect.bottom - visibleBottom,
+                            behavior: "auto"
+                        });
+                    }
+                });
+            }
+        },
+
         scrollToStacks() {
             document.getElementById("stack-list-start")?.scrollIntoView({ behavior: "smooth",
                 block: "start" });
@@ -1020,6 +1064,7 @@ export default {
         padding: 0.5rem max(10px, env(safe-area-inset-right)) max(0.5rem, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
         background: rgba(255, 255, 255, 0.96);
         box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.08);
+        transform: translateY(calc(-1 * var(--mobile-keyboard-offset, 0px)));
 
         .dark & {
             background: rgba($dark-bg2, 0.96);
@@ -1045,6 +1090,31 @@ export default {
         }
     }
 
+    .mobile-edit-actions .stack-primary-actions {
+        display: contents;
+
+        > .btn {
+            flex: 1 1 0;
+        }
+    }
+
+    .mobile-edit-actions .edit-cancel {
+        order: 1;
+        flex: 1 1 0;
+    }
+
+    .mobile-edit-actions .edit-save {
+        order: 2;
+    }
+
+    .mobile-edit-actions .edit-deploy {
+        order: 3;
+    }
+
+    .mobile-edit-actions :deep(.edit-more) {
+        display: none;
+    }
+
     .stack-section {
         margin-bottom: 2rem;
     }
@@ -1059,7 +1129,7 @@ export default {
 
     .editor-box {
         max-width: 100%;
-        overflow: auto;
+        overflow: hidden;
         font-size: 16px;
     }
 
@@ -1070,8 +1140,10 @@ export default {
     }
 
     .editor-box :deep(.cm-scroller) {
+        min-width: 0;
         max-width: 100%;
-        overflow: auto;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .shadow-box.big-padding {

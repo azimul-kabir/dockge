@@ -71,6 +71,7 @@ export default {
             first: true,
             terminalInputBuffer: "",
             cursorPosition: 0,
+            resizeFrame: null,
         };
     },
     created() {
@@ -139,10 +140,17 @@ export default {
         }
         // Fit the terminal width to the div container size after terminal is created.
         this.updateTerminalSize();
+        this.terminalResizeObserver = new ResizeObserver(this.scheduleTerminalResize);
+        this.terminalResizeObserver.observe(this.$el);
     },
 
     unmounted() {
         window.removeEventListener("resize", this.onResizeEvent); // Remove the resize event listener from the window object.
+        window.removeEventListener("orientationchange", this.scheduleTerminalResize);
+        this.terminalResizeObserver?.disconnect();
+        if (this.resizeFrame) {
+            cancelAnimationFrame(this.resizeFrame);
+        }
         this.$root.unbindTerminal(this.name);
         this.terminal.dispose();
         this.$refs.terminal?.removeEventListener("contextmenu", this.handleContextMenu);
@@ -279,13 +287,26 @@ export default {
                 this.terminalFitAddOn = new FitAddon();
                 this.terminal.loadAddon(this.terminalFitAddOn);
                 window.addEventListener("resize", this.onResizeEvent);
+                window.addEventListener("orientationchange", this.scheduleTerminalResize);
             }
             this.terminalFitAddOn.fit();
+        },
+        scheduleTerminalResize() {
+            if (this.resizeFrame) {
+                cancelAnimationFrame(this.resizeFrame);
+            }
+            this.resizeFrame = requestAnimationFrame(() => {
+                this.resizeFrame = null;
+                this.onResizeEvent();
+            });
         },
         /**
          * Handles the resize event of the terminal component.
          */
         onResizeEvent() {
+            if (!this.terminalFitAddOn || !this.$el?.isConnected || this.$el.clientWidth === 0) {
+                return;
+            }
             this.terminalFitAddOn.fit();
             let rows = this.terminal.rows;
             let cols = this.terminal.cols;
@@ -378,6 +399,7 @@ export default {
 <style scoped lang="scss">
 .main-terminal {
     height: 100%;
+    min-width: 0;
 }
 </style>
 
@@ -385,5 +407,16 @@ export default {
 .terminal {
     background-color: black !important;
     height: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+@media (max-width: 767.98px) {
+    .terminal .xterm-viewport {
+        touch-action: pan-y;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
 }
 </style>
