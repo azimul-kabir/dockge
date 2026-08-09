@@ -1,5 +1,5 @@
 <template>
-    <router-link :to="url" :class="{ 'dim' : !stack.isManagedByDockge }" class="item">
+    <router-link :to="url" :class="{ 'dim' : !stack.isManagedByDockge }" class="item" @click="$emit('stack-selected', url)">
         <Uptime :stack="stack" :fixed-width="true" class="me-2" />
         <div class="title">
             <span>{{ stackName }}</span>
@@ -46,6 +46,7 @@ export default {
             default: () => {}
         },
     },
+    emits: [ "stack-selected" ],
     data() {
         return {
             isCollapsed: true,

@@ -67,6 +67,7 @@
                     v-for="(item, index) in agent.stacks"
                     v-show="$root.agentCount === 1 || !closedAgents.get(agent.endpoint)" :key="index" :stack="item" :isSelectMode="selectMode"
                     :isSelected="isSelected" :select="select" :deselect="deselect"
+                    @stack-selected="$emit('stack-selected', $event)"
                 />
             </div>
         </div>
@@ -93,6 +94,7 @@ export default {
             type: Boolean,
         },
     },
+    emits: [ "stack-selected" ],
     data() {
         return {
             searchText: "",

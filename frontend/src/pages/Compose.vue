@@ -1,6 +1,10 @@
 <template>
     <transition name="slide-fade" appear>
         <div>
+            <button v-if="!isAdd" type="button" class="btn btn-link back-to-stacks" @click="scrollToStacks">
+                <font-awesome-icon icon="chevron-up" class="me-1" />
+                Back to stacks
+            </button>
             <h1 v-if="isAdd" class="mb-3 stack-title">{{ $t("compose") }}</h1>
             <h1 v-else class="mb-3 stack-title">
                 <Uptime :stack="globalStack" :pill="true" /> {{ stack.name }}
@@ -174,7 +178,12 @@
                 </div>
 
                 <section class="stack-section" aria-labelledby="compose-heading">
-                    <h2 id="compose-heading" class="stack-section-heading">Compose</h2>
+                    <div class="stack-section-heading editor-heading">
+                        <h2 id="compose-heading">Compose</h2>
+                        <button type="button" class="btn btn-sm btn-normal wrap-toggle" :aria-pressed="composeWrapEnabled" @click="composeWrapEnabled = !composeWrapEnabled">
+                            Wrap {{ composeWrapEnabled ? "On" : "Off" }}
+                        </button>
+                    </div>
                     <h4 class="mb-3 stack-section-filename">{{ stack.composeFileName }}</h4>
 
                     <!-- YAML editor -->
@@ -182,9 +191,8 @@
                         <code-mirror
                             ref="editor"
                             v-model="stack.composeYAML"
-                            :extensions="extensions"
+                            :extensions="composeExtensions"
                             minimal
-                            wrap="true"
                             dark="true"
                             tab="true"
                             :disabled="!isEditMode"
@@ -198,15 +206,19 @@
                 </section>
 
                 <section class="stack-section" aria-labelledby="environment-heading">
-                    <h2 id="environment-heading" class="stack-section-heading">Environment</h2>
+                    <div class="stack-section-heading editor-heading">
+                        <h2 id="environment-heading">Environment</h2>
+                        <button type="button" class="btn btn-sm btn-normal wrap-toggle" :aria-pressed="environmentWrapEnabled" @click="environmentWrapEnabled = !environmentWrapEnabled">
+                            Wrap {{ environmentWrapEnabled ? "On" : "Off" }}
+                        </button>
+                    </div>
                     <h4 class="mb-3 stack-section-filename">.env</h4>
                     <div class="shadow-box mb-3 editor-box" :class="{'edit-mode' : isEditMode}">
                         <code-mirror
                             ref="envEditor"
                             v-model="stack.composeENV"
-                            :extensions="extensionsEnv"
+                            :extensions="environmentExtensions"
                             minimal
-                            wrap="true"
                             dark="true"
                             tab="true"
                             :disabled="!isEditMode"
@@ -345,9 +357,19 @@ export default {
             newContainerName: "",
             stopServiceStatusTimeout: false,
             stopDockerStatsTimeout: false,
+            composeWrapEnabled: window.matchMedia("(max-width: 767.98px)").matches,
+            environmentWrapEnabled: window.matchMedia("(max-width: 767.98px)").matches,
         };
     },
     computed: {
+        composeExtensions() {
+            return this.composeWrapEnabled ? [ ...this.extensions, EditorView.lineWrapping ] : this.extensions;
+        },
+
+        environmentExtensions() {
+            return this.environmentWrapEnabled ? [ ...this.extensionsEnv, EditorView.lineWrapping ] : this.extensionsEnv;
+        },
+
         endpointDisplay() {
             return this.$root.endpointDisplayFunction(this.endpoint);
         },
@@ -517,6 +539,11 @@ export default {
 
     },
     methods: {
+        scrollToStacks() {
+            document.getElementById("stack-list-start")?.scrollIntoView({ behavior: "smooth",
+                block: "start" });
+        },
+
         startServiceStatusTimeout() {
             clearTimeout(serviceStatusTimeout);
             serviceStatusTimeout = setTimeout(async () => {
@@ -908,6 +935,27 @@ export default {
     font-size: 1.35rem;
 }
 
+.editor-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+
+    h2 {
+        margin: 0;
+        font-size: inherit;
+    }
+}
+
+.wrap-toggle {
+    flex: 0 0 auto;
+    min-width: 78px;
+}
+
+.back-to-stacks {
+    display: none;
+}
+
 .stack-section-filename {
     font-size: 1rem;
     color: $dark-font-color3;
@@ -938,6 +986,24 @@ export default {
 }
 
 @media (max-width: 767.98px) {
+    .back-to-stacks {
+        display: inline-flex;
+        align-items: center;
+        min-height: 40px;
+        margin: 0 0 0.25rem;
+        padding: 0.25rem 0;
+        font-size: 0.9rem;
+        text-decoration: none;
+    }
+
+    .editor-heading {
+        gap: 0.5rem;
+    }
+
+    .wrap-toggle {
+        min-height: 40px;
+    }
+
     .stack-title {
         max-width: 100%;
         overflow-wrap: anywhere;
