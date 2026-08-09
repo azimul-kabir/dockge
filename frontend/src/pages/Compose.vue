@@ -1,103 +1,36 @@
 <template>
-    <div class="stack-page" :class="[`focus-${focusPane}`, { 'is-mobile': $root.isMobile }]">
+    <div class="stack-page" :class="{ 'keyboard-open': keyboardOpen }" :style="viewportStyle">
         <header class="stack-header">
             <router-link v-if="$root.isMobile && !isAdd" to="/" class="icon-link" :aria-label="$t('home')">‹</router-link>
-            <div class="stack-title">
-                <h1>{{ isAdd ? $t("compose") : stack.name }}</h1>
-                <div v-if="!isAdd" class="stack-state"><Uptime :stack="globalStack" :pill="true" /> <span v-if="$root.agentCount > 1 && endpoint">{{ endpointDisplay }}</span></div>
-            </div>
-            <button v-if="$root.isMobile && !isAdd" class="icon-button" :class="{ active: mobileView === 'more' }" aria-label="More" @click="mobileView = 'more'">•••</button>
+            <div class="stack-title"><h1>{{ isAdd ? $t("compose") : stack.name }}</h1><div v-if="!isAdd" class="stack-state"><Uptime :stack="globalStack" :pill="true" /> <span v-if="$root.agentCount > 1 && endpoint">{{ endpointDisplay }}</span></div></div>
         </header>
 
-        <div v-if="stack.isManagedByDockge" class="desktop-actions">
-            <button v-if="isEditMode" class="btn btn-primary" :disabled="processing || !!yamlError" @click="deployStack"><font-awesome-icon icon="rocket" /> {{ $t("deployStack") }}</button>
-            <button v-if="isEditMode" class="btn btn-normal" :disabled="processing || !!yamlError" @click="saveStack"><font-awesome-icon icon="save" /> {{ $t("saveStackDraft") }}</button>
-            <button v-if="!isEditMode" class="btn btn-secondary" :disabled="processing" @click="enableEditMode"><font-awesome-icon icon="pen" /> {{ $t("editStack") }}</button>
-            <button v-if="!isEditMode && !active" class="btn btn-primary" :disabled="processing" @click="startStack"><font-awesome-icon icon="play" /> {{ $t("startStack") }}</button>
-            <button v-if="!isEditMode && active" class="btn btn-normal" :disabled="processing" @click="restartStack"><font-awesome-icon icon="rotate" /> {{ $t("restartStack") }}</button>
-            <button v-if="!isEditMode" class="btn btn-normal" :disabled="processing" @click="updateStack"><font-awesome-icon icon="cloud-arrow-down" /> {{ $t("updateStack") }}</button>
-            <button v-if="!isEditMode && active" class="btn btn-normal" :disabled="processing" @click="stopStack"><font-awesome-icon icon="stop" /> {{ $t("stopStack") }}</button>
-            <button v-if="isEditMode && !isAdd" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
-        </div>
-
         <div v-if="urls.length" class="stack-urls"><a v-for="(urlItem, index) in urls" :key="index" target="_blank" :href="urlItem.url" class="badge bg-secondary">{{ urlItem.display }}</a></div>
-
         <Terminal v-show="showProgressTerminal" ref="progressTerminal" class="progress-terminal" :name="terminalName" :endpoint="endpoint" :rows="progressTerminalRows" @has-data="showProgressTerminal = true; submitted = true;" />
 
-        <div v-if="stack.isManagedByDockge" class="workspace" :style="workspaceStyle">
-            <section v-show="showRuntimePane" class="runtime-pane">
-                <div class="pane-toolbar">
-                    <strong>{{ $root.isMobile && mobileView === 'logs' ? $t("terminal") : $tc("container", 2) }}</strong>
-                    <button v-if="!$root.isMobile" class="pane-control" :aria-label="focusPane === 'runtime' ? 'Restore workspace' : 'Maximize runtime'" @click="toggleFocus('runtime')">{{ focusPane === "runtime" ? "↙" : "↗" }}</button>
-                </div>
+        <template v-if="stack.isManagedByDockge">
+            <nav v-if="!$root.isMobile" class="workspace-tabs" aria-label="Stack workspace"><button v-for="tab in desktopTabs" :key="tab.id" :class="{ active: activeWorkspace === tab.id }" @click="selectWorkspace(tab.id)">{{ tab.label }}</button><span v-if="isDirty" class="dirty-indicator">●</span></nav>
+            <div v-if="$root.isMobile && mobileView === 'config'" class="mobile-config-selector"><label for="config-workspace">Config</label><select id="config-workspace" v-model="configWorkspace" class="form-select" @change="selectConfigWorkspace"><option value="compose">Compose</option><option value="environment">Environment</option><option value="network">Networks</option></select><button v-if="isEditorWorkspace" class="wrap-button" :aria-pressed="wrapLines" @click="wrapLines = !wrapLines">Wrap {{ wrapLines ? "On" : "Off" }}</button></div>
 
-                <div v-show="!$root.isMobile || mobileView === 'status'" class="runtime-content">
-                    <div v-if="$root.isMobile && !isAdd" class="mobile-primary-actions">
-                        <button v-if="!active" class="btn btn-primary" :disabled="processing" @click="startStack"><font-awesome-icon icon="play" /> {{ $t("startStack") }}</button>
-                        <button v-if="active" class="btn btn-normal" :disabled="processing" @click="stopStack"><font-awesome-icon icon="stop" /> {{ $t("stopStack") }}</button>
-                        <button class="btn btn-normal" :disabled="processing" @click="updateStack"><font-awesome-icon icon="cloud-arrow-down" /> {{ $t("updateStack") }}</button>
-                    </div>
-                    <div v-if="isAdd" class="general-fields">
-                        <label for="name" class="form-label">{{ $t("stackName") }}</label>
-                        <input id="name" v-model="stack.name" type="text" class="form-control" required @blur="stackNameToLowercase">
-                        <label class="form-label mt-3">{{ $t("dockgeAgent") }}</label>
-                        <select v-model="stack.endpoint" class="form-select"><option v-for="(agent, agentEndpoint) in $root.agentList" :key="agentEndpoint" :value="agentEndpoint" :disabled="$root.agentStatusList[agentEndpoint] != 'online'">({{ $root.agentStatusList[agentEndpoint] }}) {{ agent.name || agent.url || $t("Current") }}</option></select>
-                    </div>
-                    <div v-if="isEditMode" class="input-group add-container">
-                        <input v-model="newContainerName" :placeholder="$t('New Container Name...')" class="form-control" @keyup.enter="addContainer">
-                        <button class="btn btn-primary" @click="addContainer">{{ $t("addContainer") }}</button>
-                    </div>
-                    <div ref="containerList" class="container-list">
-                        <Container v-for="(service, name) in jsonConfig.services" :key="name" :name="name" :is-edit-mode="isEditMode" :first="name === Object.keys(jsonConfig.services)[0]" :serviceStatus="serviceStatusList[name]" :dockerStats="dockerStats" @start-service="startService" @stop-service="stopService" @restart-service="restartService" />
-                    </div>
+            <main v-show="!$root.isMobile || mobileView !== 'more'" class="workspace">
+                <section v-if="activeWorkspace === 'overview'" class="overview-workspace workspace-scroll">
+                    <div class="stack-actions"><button v-if="!isEditMode" class="btn btn-secondary" :disabled="processing" @click="enableEditMode"><font-awesome-icon icon="pen" /> {{ $t("editStack") }}</button><button v-if="!active && !isEditMode" class="btn btn-primary" :disabled="processing" @click="startStack"><font-awesome-icon icon="play" /> {{ $t("startStack") }}</button><button v-if="active && !isEditMode" class="btn btn-normal" :disabled="processing" @click="stopStack"><font-awesome-icon icon="stop" /> {{ $t("stopStack") }}</button><button v-if="!isEditMode" class="btn btn-normal" :disabled="processing" @click="restartStack"><font-awesome-icon icon="rotate" /> {{ $t("restartStack") }}</button><button v-if="!isEditMode" class="btn btn-normal" :disabled="processing" @click="updateStack"><font-awesome-icon icon="cloud-arrow-down" /> {{ $t("updateStack") }}</button><button v-if="isEditMode && !isAdd" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button></div>
+                    <div v-if="isAdd" class="general-fields"><label for="name" class="form-label">{{ $t("stackName") }}</label><input id="name" v-model="stack.name" type="text" class="form-control" required @blur="stackNameToLowercase"><label class="form-label mt-3">{{ $t("dockgeAgent") }}</label><select v-model="stack.endpoint" class="form-select"><option v-for="(agent, agentEndpoint) in $root.agentList" :key="agentEndpoint" :value="agentEndpoint" :disabled="$root.agentStatusList[agentEndpoint] != 'online'">({{ $root.agentStatusList[agentEndpoint] }}) {{ agent.name || agent.url || $t("Current") }}</option></select></div>
+                    <div v-if="isEditMode" class="input-group add-container"><input v-model="newContainerName" :placeholder="$t('New Container Name...')" class="form-control" @keyup.enter="addContainer"><button class="btn btn-primary" @click="addContainer">{{ $t("addContainer") }}</button></div>
+                    <div ref="containerList" class="container-list"><Container v-for="(service, name) in jsonConfig.services" :key="name" :name="name" :is-edit-mode="isEditMode" :first="name === Object.keys(jsonConfig.services)[0]" :serviceStatus="serviceStatusList[name]" :dockerStats="dockerStats" @start-service="startService" @stop-service="stopService" @restart-service="restartService" /></div>
                     <div v-if="isEditMode" class="extra-settings shadow-box"><label class="form-label">{{ $tc("url", 2) }}</label><ArrayInput name="urls" :display-name="$t('url')" placeholder="https://" object-type="x-dockge" /></div>
-                </div>
+                </section>
+                <section v-show="activeWorkspace === 'logs'" class="logs-workspace"><Terminal v-if="!isAdd" ref="combinedTerminal" class="terminal" :name="combinedTerminalName" :endpoint="endpoint" :rows="combinedTerminalRows" :cols="combinedTerminalCols" /></section>
+                <section v-show="activeWorkspace === 'compose'" class="editor-workspace"><div v-if="!$root.isMobile" class="editor-toolbar"><button class="wrap-button" :aria-pressed="wrapLines" @click="wrapLines = !wrapLines">Wrap Lines: {{ wrapLines ? "On" : "Off" }}</button></div><div class="editor-view"><code-mirror ref="editor" v-model="stack.composeYAML" :extensions="extensions" minimal :wrap="wrapLines" dark tab :disabled="!isEditMode" :hasFocus="editorFocus" @change="yamlCodeChange" /><div v-if="yamlError" class="validation-error" role="alert">{{ yamlError }}</div></div></section>
+                <section v-show="activeWorkspace === 'environment'" class="editor-workspace"><div v-if="!$root.isMobile" class="editor-toolbar"><button class="wrap-button" :aria-pressed="wrapLines" @click="wrapLines = !wrapLines">Wrap Lines: {{ wrapLines ? "On" : "Off" }}</button></div><div class="editor-view"><code-mirror ref="envEditor" v-model="stack.composeENV" :extensions="extensionsEnv" minimal :wrap="wrapLines" dark tab :disabled="!isEditMode" :hasFocus="editorFocus" @change="yamlCodeChange" /></div></section>
+                <section v-show="activeWorkspace === 'network'" class="network-workspace workspace-scroll"><div class="network-panel shadow-box"><NetworkInput /></div></section>
+            </main>
+        </template>
 
-                <div v-show="!$root.isMobile || mobileView === 'logs'" class="logs-content">
-                    <Terminal v-if="!isAdd" ref="combinedTerminal" class="terminal" :name="combinedTerminalName" :endpoint="endpoint" :rows="combinedTerminalRows" :cols="combinedTerminalCols" />
-                </div>
-            </section>
-
-            <div v-if="!$root.isMobile && focusPane === 'none'" class="splitter" role="separator" aria-orientation="horizontal" :aria-valuenow="splitPercent" tabindex="0" @pointerdown="startResize" @keydown.up.prevent="adjustSplit(-5)" @keydown.down.prevent="adjustSplit(5)"><span></span></div>
-
-            <section v-show="showEditorPane" class="editor-pane">
-                <div class="editor-tabs" role="tablist" aria-label="Stack configuration">
-                    <button v-for="tab in editorTabs" :key="tab.id" role="tab" :aria-selected="editorTab === tab.id" :class="{ active: editorTab === tab.id }" @click="editorTab = tab.id">{{ tab.label }}</button>
-                    <span v-if="isDirty" class="dirty-indicator" title="Unsaved changes">●</span>
-                    <button v-if="!$root.isMobile" class="pane-control ms-auto" :aria-label="focusPane === 'editor' ? 'Restore workspace' : 'Maximize editor'" @click="toggleFocus('editor')">{{ focusPane === "editor" ? "↙" : "↗" }}</button>
-                </div>
-
-                <div class="editor-content">
-                    <div v-show="editorTab === 'compose'" class="editor-view">
-                        <code-mirror ref="editor" v-model="stack.composeYAML" :extensions="extensions" minimal :wrap="false" dark tab :disabled="!isEditMode" :hasFocus="editorFocus" @change="yamlCodeChange" />
-                        <div v-if="yamlError" class="validation-error" role="alert">{{ yamlError }}</div>
-                    </div>
-                    <div v-show="editorTab === 'environment'" class="editor-view">
-                        <code-mirror v-model="stack.composeENV" :extensions="extensionsEnv" minimal :wrap="false" dark tab :disabled="!isEditMode" :hasFocus="editorFocus" @change="yamlCodeChange" />
-                    </div>
-                    <div v-show="editorTab === 'network'" class="network-view"><div class="shadow-box"><NetworkInput /></div></div>
-                </div>
-            </section>
-        </div>
-
-        <section v-if="$root.isMobile && mobileView === 'more'" class="mobile-more">
-            <button v-if="!isEditMode" class="btn btn-normal" :disabled="processing" @click="restartStack"><font-awesome-icon icon="rotate" /> {{ $t("restartStack") }}</button>
-            <button class="btn btn-normal" :disabled="processing" @click="downStack"><font-awesome-icon icon="stop" /> {{ $t("downStack") }}</button>
-            <button v-if="!isEditMode" class="btn btn-danger" :disabled="processing" @click="showDeleteDialog = true"><font-awesome-icon icon="trash" /> {{ $t("deleteStack") }}</button>
-        </section>
-
-        <div v-if="$root.isMobile && (isAdd || mobileView === 'edit') && isEditMode" class="mobile-action-bar">
-            <span class="save-state">{{ isDirty ? "Unsaved" : "Saved" }}</span>
-            <button class="btn btn-normal" :disabled="processing || !!yamlError || !isDirty" @click="saveStack"><font-awesome-icon icon="save" /> {{ $t("saveStackDraft") }}</button>
-            <button class="btn btn-primary" :disabled="processing || !!yamlError" @click="deployStack"><font-awesome-icon icon="rocket" /> {{ $t("deployStack") }}</button>
-        </div>
-
-        <nav v-if="$root.isMobile && !isAdd" class="mobile-bottom-nav" aria-label="Stack sections">
-            <button v-for="item in mobileNav" :key="item.id" :class="{ active: mobileView === item.id }" @click="selectMobileView(item.id)"><font-awesome-icon :icon="item.icon" /><span>{{ item.label }}</span></button>
-        </nav>
-
-        <div v-if="!stack.isManagedByDockge && !processing" class="not-managed">{{ $t("stackNotManagedByDockgeMsg") }}</div>
-        <BModal v-model="showDeleteDialog" :cancelTitle="$t('cancel')" :okTitle="$t('deleteStack')" okVariant="danger" @ok="deleteDialog">{{ $t("deleteStackMsg") }}</BModal>
+        <section v-if="$root.isMobile && mobileView === 'more'" class="mobile-more"><button v-if="isEditMode" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button><button class="btn btn-normal" :disabled="processing" @click="downStack"><font-awesome-icon icon="stop" /> {{ $t("downStack") }}</button><button v-if="!isEditMode" class="btn btn-danger" :disabled="processing" @click="showDeleteDialog = true"><font-awesome-icon icon="trash" /> {{ $t("deleteStack") }}</button></section>
+        <div v-if="showEditorActions" class="editor-actions"><span class="save-state">{{ isDirty ? "● Unsaved" : "Saved" }}</span><button v-if="!$root.isMobile && isEditMode && !isAdd" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button><button v-if="!isEditMode" class="btn btn-normal" :disabled="processing" @click="enableEditMode"><font-awesome-icon icon="pen" /> {{ $t("editStack") }}</button><button class="btn btn-normal" :disabled="processing || !!yamlError || !isDirty" @click="saveStack"><font-awesome-icon icon="save" /> {{ $t("saveStackDraft") }}</button><button class="btn btn-primary" :disabled="processing || !!yamlError || !isEditMode" @click="deployStack"><font-awesome-icon icon="rocket" /> {{ $t("deployStack") }}</button></div>
+        <nav v-if="$root.isMobile && !isAdd && !keyboardOpen" class="mobile-bottom-nav" aria-label="Stack sections"><button v-for="item in mobileNav" :key="item.id" :class="{ active: mobileView === item.id }" @click="selectMobileView(item.id)"><font-awesome-icon :icon="item.icon" /><span>{{ item.label }}</span></button></nav>
+        <div v-if="!stack.isManagedByDockge && !processing" class="not-managed">{{ $t("stackNotManagedByDockgeMsg") }}</div><BModal v-model="showDeleteDialog" :cancelTitle="$t('cancel')" :okTitle="$t('deleteStack')" okVariant="danger" @ok="deleteDialog">{{ $t("deleteStackMsg") }}</BModal>
     </div>
 </template>
 
@@ -200,17 +133,23 @@ export default {
             newContainerName: "",
             stopServiceStatusTimeout: false,
             stopDockerStatsTimeout: false,
-            editorTab: "compose",
-            mobileView: "status",
-            focusPane: "none",
-            splitPercent: Number(localStorage.getItem("dockgeWorkspaceSplit")) || 40,
+            activeWorkspace: "overview",
+            configWorkspace: "compose",
+            mobileView: "overview",
+            wrapLines: window.innerWidth < 768,
+            keyboardOpen: false,
+            visualViewportHeight: window.innerHeight,
             savedComposeYAML: "",
             savedComposeENV: "",
         };
     },
     computed: {
-        editorTabs() {
+        desktopTabs() {
             return [
+                { id: "overview",
+                    label: "Overview" },
+                { id: "logs",
+                    label: "Logs" },
                 { id: "compose",
                     label: "Compose" },
                 { id: "environment",
@@ -222,14 +161,14 @@ export default {
 
         mobileNav() {
             return [
-                { id: "status",
-                    label: "Status",
+                { id: "overview",
+                    label: "Overview",
                     icon: "heartbeat" },
                 { id: "logs",
                     label: "Logs",
                     icon: "terminal" },
-                { id: "edit",
-                    label: "Edit",
+                { id: "config",
+                    label: "Config",
                     icon: "pen" },
                 { id: "more",
                     label: "More",
@@ -241,16 +180,16 @@ export default {
             return this.stack.composeYAML !== this.savedComposeYAML || this.stack.composeENV !== this.savedComposeENV;
         },
 
-        workspaceStyle() {
-            return { "--runtime-size": `${this.splitPercent}%` };
+        isEditorWorkspace() {
+            return this.activeWorkspace === "compose" || this.activeWorkspace === "environment";
         },
 
-        showRuntimePane() {
-            return !this.$root.isMobile || (!this.isAdd && (this.mobileView === "status" || this.mobileView === "logs"));
+        showEditorActions() {
+            return this.stack.isManagedByDockge && (this.isAdd || this.isEditorWorkspace);
         },
 
-        showEditorPane() {
-            return !this.$root.isMobile || this.isAdd || this.mobileView === "edit";
+        viewportStyle() {
+            return { "--visual-viewport-height": `${this.visualViewportHeight}px` };
         },
 
         endpointDisplay() {
@@ -355,6 +294,10 @@ export default {
             deep: true,
         },
 
+        editorFocus() {
+            this.updateVisualViewport();
+        },
+
         jsonConfig: {
             handler() {
                 if (!this.editorFocus) {
@@ -382,6 +325,9 @@ export default {
         if (this.isAdd) {
             this.processing = false;
             this.isEditMode = true;
+            this.activeWorkspace = "compose";
+            this.configWorkspace = "compose";
+            this.mobileView = "config";
 
             let composeYAML;
             let composeENV;
@@ -419,9 +365,13 @@ export default {
 
         this.requestServiceStatus();
         this.requestDockerStats();
+        window.visualViewport?.addEventListener("resize", this.updateVisualViewport, { passive: true });
+        window.visualViewport?.addEventListener("scroll", this.updateVisualViewport, { passive: true });
+        this.updateVisualViewport();
     },
     unmounted() {
-        this.stopResize();
+        window.visualViewport?.removeEventListener("resize", this.updateVisualViewport);
+        window.visualViewport?.removeEventListener("scroll", this.updateVisualViewport);
     },
     methods: {
         startServiceStatusTimeout() {
@@ -688,42 +638,34 @@ export default {
 
         selectMobileView(view) {
             this.mobileView = view;
-            if (view === "edit" && !this.isEditMode) {
-                this.enableEditMode();
+            if (view === "config") {
+                this.activeWorkspace = this.configWorkspace;
+            } else if (view !== "more") {
+                this.activeWorkspace = view;
             }
             this.$nextTick(() => this.$refs.combinedTerminal?.updateTerminalSize?.());
         },
 
-        toggleFocus(pane) {
-            this.focusPane = this.focusPane === pane ? "none" : pane;
+        selectWorkspace(workspace) {
+            this.activeWorkspace = workspace;
+            if ([ "compose", "environment", "network" ].includes(workspace)) {
+                this.configWorkspace = workspace;
+            }
             this.$nextTick(() => this.$refs.combinedTerminal?.updateTerminalSize?.());
         },
 
-        adjustSplit(amount) {
-            this.splitPercent = Math.min(70, Math.max(25, this.splitPercent + amount));
-            localStorage.setItem("dockgeWorkspaceSplit", String(this.splitPercent));
+        selectConfigWorkspace() {
+            this.selectWorkspace(this.configWorkspace);
         },
 
-        startResize(event) {
-            event.preventDefault();
-            this.resizeWorkspace = event.currentTarget.parentElement;
-            window.addEventListener("pointermove", this.resizeWorkspacePanes);
-            window.addEventListener("pointerup", this.stopResize, { once: true });
-        },
-
-        resizeWorkspacePanes(event) {
-            const bounds = this.resizeWorkspace.getBoundingClientRect();
-            const percent = ((event.clientY - bounds.top) / bounds.height) * 100;
-            this.splitPercent = Math.min(70, Math.max(25, Math.round(percent)));
-        },
-
-        stopResize() {
-            window.removeEventListener("pointermove", this.resizeWorkspacePanes);
-            window.removeEventListener("pointerup", this.stopResize);
-            if (this.splitPercent) {
-                localStorage.setItem("dockgeWorkspaceSplit", String(this.splitPercent));
-            }
-            this.resizeWorkspace = null;
+        updateVisualViewport() {
+            const viewport = window.visualViewport;
+            this.visualViewportHeight = viewport?.height || window.innerHeight;
+            this.keyboardOpen = this.$root.isMobile && this.editorFocus && window.innerHeight - this.visualViewportHeight > 120;
+            this.$nextTick(() => {
+                this.$refs.editor?.view?.requestMeasure?.();
+                this.$refs.envEditor?.view?.requestMeasure?.();
+            });
         },
 
         checkYAML() {
@@ -802,84 +744,81 @@ export default {
 
 <style scoped lang="scss">
 @import "../styles/vars.scss";
-
-.stack-page { height: calc(100dvh - 112px); min-height: 600px; display: flex; flex-direction: column; min-width: 0; }
-.stack-header { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; margin-bottom: 8px; }
-.stack-title { min-width: 0; display: flex; align-items: center; gap: 12px; }
+.stack-page { display: flex; height: calc(100dvh - 112px); min-height: 560px; min-width: 0; flex-direction: column; overflow: hidden; }
+.stack-header { display: flex; min-height: 44px; align-items: center; gap: 12px; flex: 0 0 auto; }
+.stack-title { display: flex; min-width: 0; align-items: center; gap: 12px; }
 .stack-title h1 { margin: 0; overflow: hidden; font-size: 25px; text-overflow: ellipsis; white-space: nowrap; }
 .stack-state { white-space: nowrap; }
-.desktop-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
-.desktop-actions .btn { padding: 7px 12px; }
-.stack-urls { display: flex; gap: 6px; margin-bottom: 6px; overflow-x: auto; }
+.stack-urls { display: flex; gap: 6px; margin: 4px 0; overflow-x: auto; }
 .progress-terminal { flex: 0 0 150px; margin-bottom: 8px; overflow: hidden; }
-.workspace { display: grid; grid-template-rows: minmax(150px, var(--runtime-size)) 8px minmax(220px, 1fr); flex: 1 1 auto; min-height: 0; border: 1px solid #dee2e6; border-radius: 10px; overflow: hidden; }
-.runtime-pane, .editor-pane { min-height: 0; min-width: 0; overflow: hidden; background: rgba(255,255,255,.35); }
-.runtime-pane { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(360px, 1fr); grid-template-rows: 42px minmax(0, 1fr); }
-.pane-toolbar { grid-column: 1 / -1; display: flex; align-items: center; padding: 0 12px; border-bottom: 1px solid #dee2e6; }
-.pane-control { min-width: 44px; min-height: 38px; margin-left: auto; border: 0; color: inherit; background: transparent; font-size: 20px; }
-.runtime-content, .logs-content { min-width: 0; min-height: 0; padding: 10px; overflow: auto; }
-.logs-content { border-left: 1px solid #dee2e6; }
-.terminal { height: 100%; min-height: 180px; overflow: hidden; }
-.add-container { margin-bottom: 10px; }
-.extra-settings { margin-top: 10px; }
-.splitter { display: grid; cursor: row-resize; background: #e9ecef; place-items: center; touch-action: none; }
-.splitter span { width: 48px; height: 3px; border-radius: 2px; background: #9aa1a8; }
-.editor-pane { display: flex; flex-direction: column; }
-.editor-tabs { display: flex; flex: 0 0 44px; align-items: stretch; gap: 2px; padding: 3px 6px 0; border-bottom: 1px solid #dee2e6; overflow-x: auto; }
-.editor-tabs > button:not(.pane-control) { min-width: 100px; padding: 0 14px; border: 0; border-bottom: 3px solid transparent; color: inherit; background: transparent; font-weight: 600; }
-.editor-tabs > button.active { border-bottom-color: $primary; color: $primary; }
-.dirty-indicator { align-self: center; color: $warning; font-size: 12px; }
-.editor-content, .editor-view { flex: 1; min-width: 0; min-height: 0; height: 100%; overflow: hidden; }
-.editor-view { position: relative; font-family: 'JetBrains Mono', monospace; font-size: 14px; }
-.editor-view :deep(.vue-codemirror), .editor-view :deep(.cm-editor) { height: 100%; }
+.workspace-tabs { display: flex; min-height: 44px; align-items: stretch; gap: 2px; flex: 0 0 auto; border-bottom: 1px solid #dee2e6; }
+.workspace-tabs button { padding: 0 16px; border: 0; border-bottom: 3px solid transparent; color: inherit; background: transparent; font-weight: 600; }
+.workspace-tabs button.active { border-bottom-color: $primary; color: $primary; }
+.dirty-indicator { align-self: center; margin-left: auto; padding-right: 12px; color: $warning; }
+.workspace { flex: 1 1 auto; min-width: 0; min-height: 0; overflow: hidden; border: 1px solid #dee2e6; border-top: 0; border-radius: 0 0 10px 10px; }
+.workspace-scroll { height: 100%; overflow: auto; overscroll-behavior: contain; }
+.overview-workspace { padding: 12px; }
+.stack-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.stack-actions .btn { min-height: 40px; }
+.container-list { max-width: 1050px; }
+.add-container { max-width: 700px; margin-bottom: 10px; }
+.extra-settings { max-width: 1050px; margin-top: 10px; }
+.logs-workspace, .editor-workspace { display: flex; width: 100%; height: 100%; min-width: 0; min-height: 0; flex-direction: column; overflow: hidden; }
+.terminal { flex: 1; min-width: 0; min-height: 0; overflow: hidden; border-radius: 0; }
+.editor-toolbar { display: flex; min-height: 42px; justify-content: flex-end; align-items: center; flex: 0 0 auto; padding: 4px 8px; border-bottom: 1px solid #dee2e6; }
+.wrap-button { min-height: 34px; padding: 4px 9px; border: 1px solid #adb5bd; border-radius: 6px; color: inherit; background: transparent; font-size: 13px; }
+.editor-view { position: relative; flex: 1; width: 100%; min-width: 0; min-height: 0; overflow: hidden; font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+.editor-view :deep(.vue-codemirror), .editor-view :deep(.cm-editor) { width: 100%; height: 100%; min-width: 0; }
 .editor-view :deep(.cm-scroller) { overflow: auto; font-family: 'JetBrains Mono', monospace; }
 .validation-error { position: absolute; right: 12px; bottom: 10px; max-width: calc(100% - 24px); padding: 6px 10px; border-radius: 5px; color: white; background: $danger; font: 12px BlinkMacSystemFont, sans-serif; }
-.network-view { height: 100%; padding: 14px; overflow: auto; }
-.focus-editor .workspace { grid-template-rows: 1fr; }
-.focus-editor .runtime-pane, .focus-editor .splitter, .focus-runtime .editor-pane, .focus-runtime .splitter { display: none; }
-.focus-runtime .workspace { grid-template-rows: 1fr; }
-:global(.dark) .workspace, :global(.dark) .pane-toolbar, :global(.dark) .logs-content, :global(.dark) .editor-tabs { border-color: $dark-border-color; }
-:global(.dark) .runtime-pane, :global(.dark) .editor-pane { background: $dark-bg; }
-:global(.dark) .splitter { background: $dark-bg2; }
-.icon-link, .icon-button { display: grid; width: 44px; height: 44px; padding: 0; border: 0; color: inherit; background: transparent; font-size: 28px; text-decoration: none; place-items: center; }
-
+.network-workspace { padding: 18px; }
+.network-panel { width: min(100%, 720px); padding: 20px; }
+.editor-actions { display: flex; min-height: 52px; align-items: center; gap: 8px; flex: 0 0 auto; padding: 5px 8px; border: 1px solid #dee2e6; border-top: 0; background: white; }
+.save-state { margin-right: auto; color: #6c757d; font-size: 12px; }
+.mobile-config-selector, .mobile-more, .mobile-bottom-nav { display: none; }
+.icon-link { display: grid; width: 44px; height: 44px; padding: 0; color: inherit; font-size: 28px; text-decoration: none; place-items: center; }
+:global(.dark) .workspace, :global(.dark) .workspace-tabs, :global(.dark) .editor-toolbar, :global(.dark) .editor-actions { border-color: $dark-border-color; }
+:global(.dark) .editor-actions { color: $dark-font-color; background: $dark-bg; }
 @media (max-width: 767.98px) {
-    .stack-page { min-height: 0; height: 100dvh; padding: max(8px, env(safe-area-inset-top)) 8px calc(68px + env(safe-area-inset-bottom)); overflow: hidden; }
-    .stack-header { min-height: 48px; margin: 0; }
+    .stack-page { height: var(--visual-viewport-height, 100dvh); min-height: 0; padding: max(6px, env(safe-area-inset-top)) 8px calc(60px + env(safe-area-inset-bottom)); overflow: hidden; }
+    .stack-header { min-height: 44px; }
     .stack-title { flex: 1; }
-    .stack-title h1 { font-size: 20px; }
-    .stack-state { font-size: 12px; }
-    .desktop-actions, .stack-urls { display: none; }
-    .progress-terminal { position: absolute; inset: 56px 8px 70px; z-index: 10; margin: 0; }
-    .workspace { display: block; flex: 1; border: 0; border-radius: 0; overflow: hidden; }
-    .runtime-pane, .editor-pane { height: 100%; }
-    .runtime-pane { display: flex; flex-direction: column; }
-    .pane-toolbar { flex: 0 0 42px; }
-    .runtime-content, .logs-content { flex: 1; padding: 8px 0; border: 0; -webkit-overflow-scrolling: touch; }
-    .mobile-primary-actions { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; }
-    .mobile-primary-actions .btn { min-height: 44px; flex: 0 0 auto; }
-    .terminal { min-height: 0; height: 100%; border-radius: 0; }
-    .editor-tabs { flex-basis: 48px; padding: 0; }
-    .editor-tabs > button:not(.pane-control) { min-width: 105px; min-height: 44px; }
-    .editor-view { font-size: 16px; }
-    .editor-view :deep(.cm-content) { padding-bottom: 90px; caret-color: white; }
+    .stack-title h1 { font-size: 19px; }
+    .stack-state { font-size: 11px; }
+    .stack-urls { display: none; }
+    .progress-terminal { position: absolute; inset: 52px 8px calc(64px + env(safe-area-inset-bottom)); z-index: 20; margin: 0; }
+    .mobile-config-selector { display: grid; min-height: 44px; align-items: center; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; flex: 0 0 auto; padding: 3px 0; }
+    .mobile-config-selector label { font-size: 12px; font-weight: 700; }
+    .mobile-config-selector .form-select { min-height: 38px; padding-top: 4px; padding-bottom: 4px; font-size: 16px; }
+    .workspace { flex: 1; border: 0; border-radius: 0; }
+    .overview-workspace { padding: 8px 0; }
+    .stack-actions { flex-wrap: nowrap; gap: 6px; margin-bottom: 8px; overflow-x: auto; }
+    .stack-actions .btn { min-height: 44px; flex: 0 0 auto; padding: 7px 10px; }
+    .container-list { max-width: 100%; }
+    .terminal { border-radius: 0; }
+    .editor-toolbar { display: none; }
+    .editor-view { max-width: 100%; font-size: 16px; }
+    .editor-view :deep(.cm-content) { min-width: 0; padding-bottom: 68px; caret-color: white; }
     .editor-view :deep(.cm-line) { padding-left: 4px; }
-    .network-view { padding: 8px 0 88px; font-size: 16px; }
-    .network-view :deep(input), .network-view :deep(select) { min-height: 44px; font-size: 16px; }
-    .mobile-more { display: grid; align-content: start; gap: 12px; flex: 1; padding: 16px 4px; }
+    .editor-view :deep(.cm-scroller) { max-width: 100%; overscroll-behavior: contain; }
+    .network-workspace { padding: 8px 0 68px; }
+    .network-panel { width: 100%; padding: 12px; }
+    .network-panel :deep(input), .network-panel :deep(select) { min-height: 44px; font-size: 16px; }
+    .mobile-more { display: grid; align-content: start; gap: 12px; flex: 1; padding: 18px 4px; }
     .mobile-more .btn { min-height: 48px; text-align: left; }
-    .mobile-action-bar { position: fixed; right: 0; bottom: calc(60px + env(safe-area-inset-bottom)); left: 0; z-index: 50; display: flex; align-items: center; gap: 6px; min-height: 58px; padding: 6px 8px; border-top: 1px solid #dee2e6; background: white; }
-    .mobile-action-bar .save-state { margin-right: auto; font-size: 12px; }
-    .mobile-action-bar .btn { min-height: 44px; padding: 6px 10px; }
+    .editor-actions { position: fixed; right: 0; bottom: calc(60px + env(safe-area-inset-bottom)); left: 0; z-index: 50; min-height: 50px; padding: 4px 8px; border-right: 0; border-left: 0; }
+    .editor-actions .btn { min-height: 42px; padding: 5px 9px; font-size: 13px; }
     .mobile-bottom-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 60; display: grid; grid-template-columns: repeat(4, 1fr); height: calc(60px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid #dee2e6; background: white; }
     .mobile-bottom-nav button { display: flex; min-width: 0; min-height: 60px; align-items: center; justify-content: center; flex-direction: column; gap: 2px; border: 0; color: #737980; background: transparent; font-size: 11px; }
     .mobile-bottom-nav button svg { font-size: 18px; }
     .mobile-bottom-nav button.active { color: $primary; font-weight: bold; }
-    :global(.dark) .mobile-action-bar, :global(.dark) .mobile-bottom-nav { border-color: $dark-border-color; color: $dark-font-color; background: $dark-bg; }
-    .modal-dialog { max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)); margin: max(8px, env(safe-area-inset-top)) 8px; }
+    .keyboard-open { padding-top: max(2px, env(safe-area-inset-top)); padding-bottom: 50px; }
+    .keyboard-open .stack-header { display: none; }
+    .keyboard-open .mobile-config-selector { min-height: 40px; }
+    .keyboard-open .editor-actions { bottom: 0; padding-bottom: max(4px, env(safe-area-inset-bottom)); }
+    .keyboard-open .editor-view :deep(.cm-content) { padding-bottom: 56px; }
+    :global(.dark) .mobile-bottom-nav { border-color: $dark-border-color; color: $dark-font-color; background: $dark-bg; }
 }
-
-@media (max-width: 430px) { .mobile-action-bar .save-state { display: none; } }
-@media (max-width: 350px) { .mobile-action-bar .btn { font-size: 12px; } .stack-state { display: none; } }
-@media (max-width: 900px) and (orientation: landscape) { .stack-page { padding-top: 4px; } .stack-header { min-height: 40px; } }
+@media (max-width: 350px) { .stack-state, .save-state { display: none; } .editor-actions { justify-content: flex-end; } .editor-actions .btn { font-size: 12px; } .editor-view :deep(.cm-gutters) { display: none; } }
+@media (max-width: 900px) and (orientation: landscape) { .stack-page { padding-top: 2px; } }
 </style>

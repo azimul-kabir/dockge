@@ -387,6 +387,17 @@ export default defineComponent({
 @import "../styles/vars";
 
 .container {
+    padding: 14px 16px !important;
+    margin-bottom: 10px !important;
+
+    h4 {
+        margin-bottom: 4px;
+        overflow: hidden;
+        font-size: 1rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
     .image {
         font-size: 0.8rem;
         color: #6c757d;
@@ -407,6 +418,47 @@ export default defineComponent({
     .stats {
         font-size: 0.8rem;
         color: #6c757d;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .container {
+        padding: 11px 10px !important;
+        margin-bottom: 7px !important;
+
+        > .row {
+            --bs-gutter-x: 10px;
+        }
+
+        .col-5 {
+            width: 58%;
+        }
+
+        .col-7 {
+            width: 42%;
+        }
+
+        .function .btn-group {
+            display: flex;
+            width: 100%;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 4px;
+            margin-right: 0 !important;
+        }
+
+        .function .btn {
+            min-height: 40px;
+            padding: 5px 7px;
+            border-radius: 5px !important;
+            font-size: 11px;
+        }
+
+        .config input,
+        .config select {
+            min-height: 44px;
+            font-size: 16px;
+        }
     }
 }
 </style>
