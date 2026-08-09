@@ -379,11 +379,13 @@ export default {
 
 @media (max-width: 767.98px) {
     .stack-list-box {
+        flex: 0 0 auto;
         width: 100%;
         max-width: 100%;
+        height: auto;
+        min-height: auto;
         padding: 12px;
-        padding-bottom: max(12px, env(safe-area-inset-bottom));
-        overflow: hidden;
+        overflow: visible;
     }
 
     .list-header {
@@ -417,14 +419,16 @@ export default {
         font-size: 16px;
     }
 
-    .stack-list {
+    .stack-list,
+    .stack-list.scrollbar {
         width: 100%;
         min-width: 0;
-        padding: 2px 0 max(8px, env(safe-area-inset-bottom));
-        overflow-x: hidden;
-        overscroll-behavior: contain;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-gutter: stable;
+        height: auto;
+        max-height: none;
+        padding: 2px 0 8px;
+        overflow: visible;
+        overscroll-behavior: auto;
+        scrollbar-gutter: auto;
     }
 
     .stack-list-inner {

@@ -82,8 +82,7 @@ export default {
     }
 
     .dashboard-sidebar {
-        height: clamp(320px, 52vh, 520px);
-        height: clamp(320px, 52dvh, 520px);
+        height: auto;
         max-height: none;
         position: static;
     }
