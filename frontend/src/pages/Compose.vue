@@ -58,8 +58,8 @@
                     </BDropdown>
                 </div>
 
-                <button v-if="isEditMode && !isAdd" class="btn btn-normal edit-cancel" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
-                <button v-if="isEditMode && isAdd" class="btn btn-normal edit-cancel" :disabled="processing" @click="cancelStack">{{ $t("cancel") }}</button>
+                <button v-if="isEditMode && !isNewComposeRoute" class="btn btn-normal edit-cancel" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
+                <button v-if="isEditMode && isNewComposeRoute" class="btn btn-normal edit-cancel" :disabled="processing" @click="cancelStack">{{ $t("cancel") }}</button>
                 <button v-if="!isEditMode" class="btn btn-danger" :disabled="processing" @click="showDeleteDialog = !showDeleteDialog">
                     <font-awesome-icon icon="trash" class="me-1" />
                     {{ $t("deleteStack") }}
@@ -234,7 +234,7 @@
 
                 <Teleport v-if="isEditMode" :to="mobileEditorActionsTarget">
                     <div class="mobile-editor-actions" aria-label="Editor actions">
-                        <button v-if="!isAdd" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
+                        <button v-if="!isNewComposeRoute" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
                         <button v-else class="btn btn-normal" :disabled="processing" @click="cancelStack">{{ $t("cancel") }}</button>
                         <button class="btn btn-normal" :disabled="processing" @click="saveStack">
                             <font-awesome-icon icon="save" class="me-1" />
@@ -427,6 +427,10 @@ export default {
 
         isAdd() {
             return this.$route.path === "/compose" && !this.submitted;
+        },
+
+        isNewComposeRoute() {
+            return this.$route.path === "/compose";
         },
 
         /**
