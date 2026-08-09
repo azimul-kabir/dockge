@@ -3,12 +3,14 @@
         <Uptime :stack="stack" :fixed-width="true" class="me-2" />
         <div class="title">
             <span>{{ stackName }}</span>
+            <small>{{ statusLabel }}</small>
         </div>
     </router-link>
 </template>
 
 <script>
 import Uptime from "./Uptime.vue";
+import { statusNameShort } from "../../../common/util-common";
 
 export default {
     components: {
@@ -69,6 +71,9 @@ export default {
         },
         stackName() {
             return this.stack.name;
+        },
+        statusLabel() {
+            return this.$t(statusNameShort(this.stack.status));
         }
     },
     watch: {
@@ -147,7 +152,22 @@ export default {
         background-color: #cdf8f4;
     }
     .title {
-        margin-top: -4px;
+        min-width: 0;
+        line-height: 1.25;
+
+        span, small {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        small {
+            margin-top: 3px;
+            color: $dark-font-color3;
+            font-size: 12px;
+            font-weight: normal;
+        }
     }
     .endpoint {
         font-size: 12px;
