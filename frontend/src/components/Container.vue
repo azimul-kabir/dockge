@@ -384,6 +384,75 @@ export default defineComponent({
 </script>
 
 <style scoped lang="scss">
+.container,
+.row,
+.row > [class*="col-"] {
+    min-width: 0;
+}
+
+.image,
+.stats,
+.badge {
+    overflow-wrap: anywhere;
+}
+
+.function,
+.function .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.25rem;
+    max-width: 100%;
+}
+
+@media (max-width: 767.98px) {
+    .container {
+        width: 100%;
+        max-width: 100%;
+        padding: 1rem;
+    }
+
+    .row {
+        gap: 0.75rem;
+    }
+
+    .row > .col-5,
+    .row > .col-7 {
+        flex: 0 0 100%;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .function,
+    .function .btn-group {
+        justify-content: flex-start;
+        margin-right: 0 !important;
+    }
+
+    .btn {
+        min-height: 44px;
+    }
+
+    .d-flex.align-items-center.gap-3 {
+        flex-wrap: wrap;
+    }
+
+    .config,
+    .input-group,
+    .form-control,
+    .form-select {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .form-control,
+    .form-select {
+        font-size: 16px;
+    }
+}
+</style>
+
+<style scoped lang="scss">
 @import "../styles/vars";
 
 .container {

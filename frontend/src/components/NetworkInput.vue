@@ -224,4 +224,53 @@ export default {
     font-size: 13px;
     cursor: pointer;
 }
+
+@media (max-width: 767.98px) {
+    .list-group,
+    .list-group-item {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .list-group li {
+        align-items: stretch;
+        gap: 0.5rem;
+        padding: 0.5rem;
+
+        .domain-input {
+            width: 100%;
+            min-width: 0;
+            font-size: 16px;
+        }
+
+        .remove {
+            display: inline-flex;
+            flex: 0 0 44px;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            margin: 0 !important;
+        }
+    }
+
+    .btn,
+    .form-check-input,
+    .form-check-label {
+        min-height: 44px;
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        gap: 0.75rem;
+    }
+
+    .form-check-label {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+}
 </style>

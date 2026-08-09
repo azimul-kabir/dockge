@@ -1,15 +1,15 @@
 <template>
     <transition name="slide-fade" appear>
         <div>
-            <h1 v-if="isAdd" class="mb-3">{{ $t("compose") }}</h1>
-            <h1 v-else class="mb-3">
+            <h1 v-if="isAdd" class="mb-3 stack-title">{{ $t("compose") }}</h1>
+            <h1 v-else class="mb-3 stack-title">
                 <Uptime :stack="globalStack" :pill="true" /> {{ stack.name }}
                 <span v-if="$root.agentCount > 1 && endpoint !== ''" class="agent-name">
                     ({{ endpointDisplay }})
                 </span>
             </h1>
 
-            <div v-if="stack.isManagedByDockge" class="stack-actions mb-3">
+            <div v-if="stack.isManagedByDockge" class="stack-actions mb-3" :class="{ 'mobile-edit-actions': isEditMode }">
                 <div class="btn-group stack-primary-actions me-2" role="group">
                     <button v-if="isEditMode" class="btn btn-primary" :disabled="processing" @click="deployStack">
                         <font-awesome-icon icon="rocket" class="me-1" />
@@ -55,6 +55,7 @@
                 </div>
 
                 <button v-if="isEditMode && !isAdd" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
+                <button v-if="isEditMode && isAdd" class="btn btn-normal" :disabled="processing" @click="cancelStack">{{ $t("cancel") }}</button>
                 <button v-if="!isEditMode" class="btn btn-danger" :disabled="processing" @click="showDeleteDialog = !showDeleteDialog">
                     <font-awesome-icon icon="trash" class="me-1" />
                     {{ $t("deleteStack") }}
@@ -717,6 +718,10 @@ export default {
             this.isEditMode = false;
         },
 
+        cancelStack() {
+            this.$router.push("/");
+        },
+
         yamlToJSON(yaml) {
             let doc = parseDocument(yaml);
             if (doc.errors.length > 0) {
@@ -881,6 +886,7 @@ export default {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+    min-width: 0;
 }
 
 .stack-primary-actions {
@@ -929,5 +935,92 @@ export default {
 .agent-name {
     font-size: 13px;
     color: $dark-font-color3;
+}
+
+@media (max-width: 767.98px) {
+    .stack-title {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        font-size: clamp(1.55rem, 8vw, 2rem);
+    }
+
+    .stack-actions.mobile-edit-actions {
+        position: fixed;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 20;
+        margin: 0 !important;
+        padding: 0.5rem max(10px, env(safe-area-inset-right)) max(0.5rem, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.08);
+
+        .dark & {
+            background: rgba($dark-bg2, 0.96);
+        }
+
+        .btn {
+            min-height: 44px;
+        }
+    }
+
+    .mobile-edit-actions ~ .stack-workspace {
+        padding-bottom: calc(7rem + env(safe-area-inset-bottom));
+    }
+
+    .stack-primary-actions {
+        display: flex;
+        flex: 1 1 100%;
+        margin-right: 0 !important;
+
+        > .btn,
+        > :deep(.dropdown) {
+            flex: 1 1 auto;
+        }
+    }
+
+    .stack-section {
+        margin-bottom: 2rem;
+    }
+
+    .terminal {
+        width: 100%;
+        max-width: 100%;
+        height: clamp(240px, 38vh, 280px);
+        overflow: hidden;
+        touch-action: pan-y;
+    }
+
+    .editor-box {
+        max-width: 100%;
+        overflow: auto;
+        font-size: 16px;
+    }
+
+    .editor-box :deep(.cm-editor),
+    .editor-box :deep(.cm-content) {
+        min-width: 0;
+        font-size: 16px;
+    }
+
+    .editor-box :deep(.cm-scroller) {
+        max-width: 100%;
+        overflow: auto;
+    }
+
+    .shadow-box.big-padding {
+        padding: 1rem;
+    }
+
+    .input-group {
+        min-width: 0;
+        flex-wrap: wrap;
+    }
+
+    .form-control,
+    .form-select {
+        min-width: 0;
+        font-size: 16px;
+    }
 }
 </style>
