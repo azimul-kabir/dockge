@@ -69,106 +69,108 @@
             </div>
 
             <div v-if="stack.isManagedByDockge" class="stack-workspace">
-                <section class="stack-section" aria-labelledby="overview-heading">
-                    <h2 id="overview-heading" class="stack-section-heading">Overview</h2>
+                <div class="runtime-row">
+                    <section class="stack-section" aria-labelledby="overview-heading">
+                        <h2 id="overview-heading" class="stack-section-heading">Overview</h2>
 
-                    <!-- General -->
-                    <div v-if="isAdd">
-                        <h4 class="mb-3">{{ $t("general") }}</h4>
-                        <div class="shadow-box big-padding mb-3">
-                            <!-- Stack Name -->
-                            <div>
-                                <label for="name" class="form-label">{{ $t("stackName") }}</label>
-                                <input id="name" v-model="stack.name" type="text" class="form-control" required @blur="stackNameToLowercase">
-                                <div class="form-text">{{ $t("Lowercase only") }}</div>
-                            </div>
+                        <!-- General -->
+                        <div v-if="isAdd">
+                            <h4 class="mb-3">{{ $t("general") }}</h4>
+                            <div class="shadow-box big-padding mb-3">
+                                <!-- Stack Name -->
+                                <div>
+                                    <label for="name" class="form-label">{{ $t("stackName") }}</label>
+                                    <input id="name" v-model="stack.name" type="text" class="form-control" required @blur="stackNameToLowercase">
+                                    <div class="form-text">{{ $t("Lowercase only") }}</div>
+                                </div>
 
-                            <!-- Endpoint -->
-                            <div class="mt-3">
-                                <label for="name" class="form-label">{{ $t("dockgeAgent") }}</label>
-                                <select v-model="stack.endpoint" class="form-select">
-                                    <option v-for="(agent, agentEndpoint) in $root.agentList" :key="agentEndpoint" :value="agentEndpoint" :disabled="$root.agentStatusList[agentEndpoint] != 'online'">
-                                        ({{ $root.agentStatusList[agentEndpoint] }}) {{ (agent.name !== '') ? agent.name : agent.url || $t("Current") }}
-                                    </option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Containers -->
-                    <h4 class="mb-3">{{ $tc("container", 2) }}</h4>
-
-                    <div v-if="isEditMode" class="input-group mb-3">
-                        <input
-                            v-model="newContainerName"
-                            :placeholder="$t(`New Container Name...`)"
-                            class="form-control"
-                            @keyup.enter="addContainer"
-                        />
-                        <button class="btn btn-primary" @click="addContainer">
-                            {{ $t("addContainer") }}
-                        </button>
-                    </div>
-
-                    <div ref="containerList">
-                        <Container
-                            v-for="(service, name) in jsonConfig.services"
-                            :key="name"
-                            :name="name"
-                            :is-edit-mode="isEditMode"
-                            :first="name === Object.keys(jsonConfig.services)[0]"
-                            :serviceStatus="serviceStatusList[name]"
-                            :dockerStats="dockerStats"
-                            @start-service="startService"
-                            @stop-service="stopService"
-                            @restart-service="restartService"
-                        />
-                    </div>
-
-                    <button v-if="false && isEditMode && jsonConfig.services && Object.keys(jsonConfig.services).length > 0" class="btn btn-normal mb-3" @click="addContainer">{{ $t("addContainer") }}</button>
-
-                    <!-- General -->
-                    <div v-if="isEditMode">
-                        <h4 class="mb-3">{{ $t("extra") }}</h4>
-                        <div class="shadow-box big-padding mb-3">
-                            <!-- URLs -->
-                            <div class="mb-4">
-                                <label class="form-label">
-                                    {{ $tc("url", 2) }}
-                                </label>
-                                <ArrayInput name="urls" :display-name="$t('url')" placeholder="https://" object-type="x-dockge" />
+                                <!-- Endpoint -->
+                                <div class="mt-3">
+                                    <label for="name" class="form-label">{{ $t("dockgeAgent") }}</label>
+                                    <select v-model="stack.endpoint" class="form-select">
+                                        <option v-for="(agent, agentEndpoint) in $root.agentList" :key="agentEndpoint" :value="agentEndpoint" :disabled="$root.agentStatusList[agentEndpoint] != 'online'">
+                                            ({{ $root.agentStatusList[agentEndpoint] }}) {{ (agent.name !== '') ? agent.name : agent.url || $t("Current") }}
+                                        </option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </section>
 
-                <section class="stack-section" aria-labelledby="logs-heading">
-                    <h2 id="logs-heading" class="stack-section-heading">Logs</h2>
+                        <!-- Containers -->
+                        <h4 class="mb-3">{{ $tc("container", 2) }}</h4>
 
-                    <!-- Progress Terminal -->
-                    <transition name="slide-fade" appear>
+                        <div v-if="isEditMode" class="input-group mb-3">
+                            <input
+                                v-model="newContainerName"
+                                :placeholder="$t(`New Container Name...`)"
+                                class="form-control"
+                                @keyup.enter="addContainer"
+                            />
+                            <button class="btn btn-primary" @click="addContainer">
+                                {{ $t("addContainer") }}
+                            </button>
+                        </div>
+
+                        <div ref="containerList">
+                            <Container
+                                v-for="(service, name) in jsonConfig.services"
+                                :key="name"
+                                :name="name"
+                                :is-edit-mode="isEditMode"
+                                :first="name === Object.keys(jsonConfig.services)[0]"
+                                :serviceStatus="serviceStatusList[name]"
+                                :dockerStats="dockerStats"
+                                @start-service="startService"
+                                @stop-service="stopService"
+                                @restart-service="restartService"
+                            />
+                        </div>
+
+                        <button v-if="false && isEditMode && jsonConfig.services && Object.keys(jsonConfig.services).length > 0" class="btn btn-normal mb-3" @click="addContainer">{{ $t("addContainer") }}</button>
+
+                        <!-- General -->
+                        <div v-if="isEditMode">
+                            <h4 class="mb-3">{{ $t("extra") }}</h4>
+                            <div class="shadow-box big-padding mb-3">
+                                <!-- URLs -->
+                                <div class="mb-4">
+                                    <label class="form-label">
+                                        {{ $tc("url", 2) }}
+                                    </label>
+                                    <ArrayInput name="urls" :display-name="$t('url')" placeholder="https://" object-type="x-dockge" />
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="stack-section" aria-labelledby="logs-heading">
+                        <h2 id="logs-heading" class="stack-section-heading">Logs</h2>
+
+                        <!-- Progress Terminal -->
+                        <transition name="slide-fade" appear>
+                            <Terminal
+                                v-show="showProgressTerminal"
+                                ref="progressTerminal"
+                                class="mb-3 terminal progress-terminal"
+                                :name="terminalName"
+                                :endpoint="endpoint"
+                                :rows="progressTerminalRows"
+                                @has-data="showProgressTerminal = true; submitted = true;"
+                            ></Terminal>
+                        </transition>
+
+                        <!-- Combined Terminal Output -->
                         <Terminal
-                            v-show="showProgressTerminal"
-                            ref="progressTerminal"
-                            class="mb-3 terminal progress-terminal"
-                            :name="terminalName"
+                            v-show="!isAdd"
+                            ref="combinedTerminal"
+                            class="mb-3 terminal combined-terminal"
+                            :name="combinedTerminalName"
                             :endpoint="endpoint"
-                            :rows="progressTerminalRows"
-                            @has-data="showProgressTerminal = true; submitted = true;"
+                            :rows="combinedTerminalRows"
+                            :cols="combinedTerminalCols"
                         ></Terminal>
-                    </transition>
-
-                    <!-- Combined Terminal Output -->
-                    <Terminal
-                        v-show="!isAdd"
-                        ref="combinedTerminal"
-                        class="mb-3 terminal combined-terminal"
-                        :name="combinedTerminalName"
-                        :endpoint="endpoint"
-                        :rows="combinedTerminalRows"
-                        :cols="combinedTerminalCols"
-                    ></Terminal>
-                </section>
+                    </section>
+                </div>
 
                 <section class="stack-section" aria-labelledby="compose-heading">
                     <h2 id="compose-heading" class="stack-section-heading">Compose</h2>
@@ -860,6 +862,19 @@ export default {
 .stack-workspace {
     width: 100%;
     min-width: 0;
+}
+
+.runtime-row {
+    min-width: 0;
+}
+
+@media (min-width: 1200px) {
+    .runtime-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+        gap: 1.5rem;
+        align-items: start;
+    }
 }
 
 .stack-actions {
