@@ -851,8 +851,10 @@ export default {
     height: 200px;
 }
 
-.combined-terminal {
-    height: clamp(280px, 42vh, 420px);
+@media (min-width: 768px) {
+    .combined-terminal {
+        height: clamp(280px, 35vh, 340px);
+    }
 }
 
 .stack-workspace {
