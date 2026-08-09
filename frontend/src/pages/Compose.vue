@@ -28,8 +28,8 @@
                 </main>
             </template>
 
-            <section v-if="$root.isMobile && mobileView === 'more'" class="mobile-more"><button v-if="isEditMode" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button><button class="btn btn-normal" :disabled="processing" @click="downStack"><font-awesome-icon icon="stop" /> {{ $t("downStack") }}</button><button v-if="!isEditMode" class="btn btn-danger" :disabled="processing" @click="showDeleteDialog = true"><font-awesome-icon icon="trash" /> {{ $t("deleteStack") }}</button></section>
-            <div v-if="showEditorActions" class="editor-actions"><span class="save-state">{{ isDirty ? "● Unsaved" : "Saved" }}</span><button v-if="!$root.isMobile && isEditMode && !isAdd" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button><button v-if="!isEditMode" class="btn btn-normal" :disabled="processing" @click="enableEditMode"><font-awesome-icon icon="pen" /> {{ $t("editStack") }}</button><button class="btn btn-normal" :disabled="processing || !!yamlError || !isDirty" @click="saveStack"><font-awesome-icon icon="save" /> {{ $t("saveStackDraft") }}</button><button class="btn btn-primary" :disabled="processing || !!yamlError || !isEditMode" @click="deployStack"><font-awesome-icon icon="rocket" /> {{ $t("deployStack") }}</button></div>
+            <section v-if="$root.isMobile && mobileView === 'more'" class="mobile-more"><button class="btn btn-normal" :disabled="processing" @click="downStack"><font-awesome-icon icon="stop" /> {{ $t("downStack") }}</button><button v-if="!isEditMode" class="btn btn-danger" :disabled="processing" @click="showDeleteDialog = true"><font-awesome-icon icon="trash" /> {{ $t("deleteStack") }}</button></section>
+            <div v-if="showEditorActions" class="editor-actions"><span class="save-state">{{ isDirty ? "● Unsaved" : "Saved" }}</span><button v-if="isEditMode && !isAdd" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button><button v-if="!isEditMode" class="btn btn-normal" :disabled="processing" @click="enableEditMode"><font-awesome-icon icon="pen" /> {{ $t("editStack") }}</button><button class="btn btn-normal" :disabled="processing || !!yamlError || !isDirty" @click="saveStack"><font-awesome-icon icon="save" /> {{ $t("saveStackDraft") }}</button><button class="btn btn-primary" :disabled="processing || !!yamlError || !isEditMode" @click="deployStack"><font-awesome-icon icon="rocket" /> {{ $t("deployStack") }}</button></div>
             <nav v-if="$root.isMobile && !isAdd && !keyboardOpen" class="mobile-bottom-nav" aria-label="Stack sections"><button v-for="item in mobileNav" :key="item.id" :class="{ active: mobileView === item.id }" @click="selectMobileView(item.id)"><font-awesome-icon :icon="item.icon" /><span>{{ item.label }}</span></button></nav>
             <div v-if="!stack.isManagedByDockge && !processing" class="not-managed">{{ $t("stackNotManagedByDockgeMsg") }}</div><BModal v-model="showDeleteDialog" :cancelTitle="$t('cancel')" :okTitle="$t('deleteStack')" okVariant="danger" @ok="deleteDialog">{{ $t("deleteStackMsg") }}</BModal>
         </div>
@@ -767,6 +767,8 @@ export default {
 .extra-settings { max-width: 1050px; margin-top: 10px; }
 .logs-workspace, .editor-workspace { display: flex; width: 100%; height: 100%; min-width: 0; min-height: 0; flex-direction: column; overflow: hidden; }
 .terminal { flex: 1; min-width: 0; min-height: 0; overflow: hidden; border-radius: 0; }
+.logs-workspace :deep(.shadow-box), .logs-workspace :deep(.main-terminal), .logs-workspace :deep(.xterm) { width: 100%; height: 100%; min-height: 0; }
+.logs-workspace :deep(.xterm-viewport) { overscroll-behavior: contain; }
 .editor-toolbar { display: flex; min-height: 42px; justify-content: flex-end; align-items: center; flex: 0 0 auto; padding: 4px 8px; border-bottom: 1px solid #dee2e6; }
 .wrap-button { min-height: 34px; padding: 4px 9px; border: 1px solid #adb5bd; border-radius: 6px; color: inherit; background: transparent; font-size: 13px; }
 .editor-view { position: relative; flex: 1; width: 100%; min-width: 0; min-height: 0; overflow: hidden; font-family: 'JetBrains Mono', monospace; font-size: 14px; }
@@ -798,6 +800,7 @@ export default {
     .stack-actions .btn { min-height: 44px; flex: 0 0 auto; padding: 7px 10px; }
     .container-list { max-width: 100%; }
     .terminal { border-radius: 0; }
+    .logs-workspace :deep(.xterm-viewport) { overflow-y: scroll !important; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
     .editor-toolbar { display: none; }
     .editor-view { max-width: 100%; font-size: 16px; }
     .editor-view :deep(.cm-content) { min-width: 0; padding-bottom: 68px; }
