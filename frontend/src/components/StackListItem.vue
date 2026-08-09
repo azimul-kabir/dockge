@@ -177,4 +177,57 @@ export default {
     opacity: 0.5;
 }
 
+@media (max-width: 767.98px) {
+    .item {
+        box-sizing: border-box;
+        min-width: 0;
+        min-height: 54px;
+        padding: 8px 10px;
+        border: 1px solid transparent;
+        border-radius: 9px;
+        gap: 2px;
+
+        &.active {
+            border-color: rgba($primary, 0.3);
+            background-color: rgba($primary, 0.12);
+            box-shadow: inset 3px 0 0 $primary;
+        }
+
+        .dark &.active {
+            border-color: rgba($primary, 0.38);
+            background-color: rgba($primary, 0.14);
+        }
+
+        .title {
+            display: block;
+            flex: 1 1 auto;
+            min-width: 0;
+            margin-top: 0;
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 1.25;
+
+            span {
+                display: block;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+        }
+
+        :deep(.badge) {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 70px;
+            width: 70px;
+            min-width: 70px;
+            min-height: 24px;
+            padding: 4px 8px;
+            font-size: 12px;
+            line-height: 1;
+        }
+    }
+}
+
 </style>

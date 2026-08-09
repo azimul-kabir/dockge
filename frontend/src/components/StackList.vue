@@ -377,11 +377,65 @@ export default {
     align-items: center;
 }
 
-@media (max-width: 770px) {
+@media (max-width: 767.98px) {
+    .stack-list-box {
+        width: 100%;
+        max-width: 100%;
+        padding: 12px;
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+        overflow: hidden;
+    }
+
     .list-header {
-        margin: -20px;
-        margin-bottom: 10px;
-        padding: 5px;
+        margin: -12px -12px 10px;
+        padding: 12px;
+        border-radius: 10px 10px 0 0;
+    }
+
+    .header-top {
+        width: 100%;
+        min-width: 0;
+        gap: 8px;
+    }
+
+    .search-wrapper {
+        width: 100%;
+    }
+
+    .search-icon {
+        display: inline-flex;
+        flex: 0 0 40px;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 8px;
+    }
+
+    .search-input {
+        min-width: 0;
+        min-height: 44px;
+        font-size: 16px;
+    }
+
+    .stack-list {
+        width: 100%;
+        min-width: 0;
+        padding: 2px 0 max(8px, env(safe-area-inset-bottom));
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-gutter: stable;
+    }
+
+    .stack-list-inner {
+        min-width: 0;
+    }
+
+    .agent-select {
+        min-height: 40px;
+        padding: 8px 10px !important;
+        font-size: 13px;
+        line-height: 1.25;
     }
 }
 
