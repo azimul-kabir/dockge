@@ -207,7 +207,7 @@
                             v-model="stack.composeYAML"
                             :extensions="composeExtensions"
                             minimal
-                            dark="true"
+                            :dark="$root.isDark"
                             tab="true"
                             :disabled="!isEditMode"
                             :hasFocus="editorFocus"
@@ -248,7 +248,7 @@
                             v-model="stack.composeENV"
                             :extensions="environmentExtensions"
                             minimal
-                            dark="true"
+                            :dark="$root.isDark"
                             tab="true"
                             :disabled="!isEditMode"
                             :hasFocus="editorFocus"
@@ -294,6 +294,7 @@ import { yaml } from "@codemirror/lang-yaml";
 import { python } from "@codemirror/lang-python";
 import { dracula as editorTheme } from "thememirror";
 import { lineNumbers, EditorView } from "@codemirror/view";
+import { lightCodeMirrorTheme } from "../util/codemirror-theme";
 import { parseDocument, Document } from "yaml";
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
@@ -358,14 +359,12 @@ export default {
         };
 
         const extensions = [
-            editorTheme,
             yaml(),
             lineNumbers(),
             EditorView.focusChangeEffect.of(focusEffectHandler)
         ];
 
         const extensionsEnv = [
-            editorTheme,
             python(),
             lineNumbers(),
             EditorView.focusChangeEffect.of(focusEffectHandler)
@@ -408,11 +407,19 @@ export default {
     },
     computed: {
         composeExtensions() {
-            return this.composeWrapEnabled ? [ ...this.extensions, EditorView.lineWrapping ] : this.extensions;
+            const extensions = [
+                ...(this.$root.isDark ? [ editorTheme ] : lightCodeMirrorTheme),
+                ...this.extensions,
+            ];
+            return this.composeWrapEnabled ? [ ...extensions, EditorView.lineWrapping ] : extensions;
         },
 
         environmentExtensions() {
-            return this.environmentWrapEnabled ? [ ...this.extensionsEnv, EditorView.lineWrapping ] : this.extensionsEnv;
+            const extensions = [
+                ...(this.$root.isDark ? [ editorTheme ] : lightCodeMirrorTheme),
+                ...this.extensionsEnv,
+            ];
+            return this.environmentWrapEnabled ? [ ...extensions, EditorView.lineWrapping ] : extensions;
         },
 
         endpointDisplay() {
