@@ -1,12 +1,12 @@
 <template>
     <div class="shadow-box big-padding mb-3 container">
         <div class="row">
-            <div class="col-5">
-                <h4>{{ name }}</h4>
+            <div class="col-5 container-summary">
+                <h4 class="container-name">{{ name }}</h4>
                 <div class="image mb-2">
                     <span class="me-1">{{ imageName }}:</span><span class="tag">{{ imageTag }}</span>
                 </div>
-                <div v-if="!isEditMode">
+                <div v-if="!isEditMode" class="container-badges">
                     <span class="badge me-1" :class="bgStyle">{{ status }}</span>
 
                     <a v-for="port in (ports ?? envsubstService.ports)" :key="port" :href="parsePort(port).url" target="_blank">
@@ -14,7 +14,7 @@
                     </a>
                 </div>
             </div>
-            <div class="col-7">
+            <div class="col-7 container-actions">
                 <div class="function">
                     <div class="btn-group me-2" role="group">
                         <router-link v-if="!isEditMode && (status === 'running' || status === 'healthy')" class="btn btn-normal" :to="terminalRouteLink" disabled="">
@@ -64,7 +64,7 @@
                 {{ $t("deleteContainer") }}
             </button>
         </div>
-        <div v-else-if="statsInstances.length > 0" class="mt-2">
+        <div v-else-if="statsInstances.length > 0" class="mt-2 container-stats">
             <div class="d-flex align-items-center gap-3">
                 <template v-if="!expandedStats">
                     <div class="stats">
@@ -448,6 +448,69 @@ export default defineComponent({
     .form-control,
     .form-select {
         font-size: 16px;
+    }
+}
+
+@media (min-width: 768px) {
+    .container {
+        padding: 0.875rem 1rem;
+        margin-bottom: 0.5rem !important;
+    }
+
+    .row {
+        align-items: center;
+    }
+
+    .row > .container-summary {
+        flex: 1 1 12rem;
+        width: auto;
+        max-width: none;
+    }
+
+    .row > .container-actions {
+        flex: 0 1 auto;
+        width: auto;
+        max-width: 48%;
+    }
+
+    .container-name {
+        display: -webkit-box;
+        margin-bottom: 0.2rem;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+        font-size: 1.125rem;
+        font-weight: 500;
+        line-height: 1.2;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+    }
+
+    .container .container-summary .image {
+        margin-bottom: 0.3rem !important;
+        font-size: 0.8125rem;
+        font-weight: 400;
+        line-height: 1.25;
+    }
+
+    .container-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.2rem 0;
+    }
+
+    .function .btn-group {
+        margin-right: 0 !important;
+    }
+
+    .function .btn {
+        min-height: 34px;
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8125rem;
+        line-height: 1.2;
+    }
+
+    .container-stats {
+        margin-top: 0.4rem !important;
     }
 }
 </style>
