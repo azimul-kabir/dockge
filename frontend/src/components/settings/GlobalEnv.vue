@@ -9,7 +9,7 @@
                         :extensions="extensionsEnv"
                         minimal
                         wrap="true"
-                        dark="true"
+                        :dark="$root.isDark"
                         tab="true"
                         :hasFocus="editorFocus"
                         @change="onChange"
@@ -35,6 +35,7 @@ import { python } from "@codemirror/lang-python"; // good enough for .env key=va
 import { dracula as editorTheme } from "thememirror";
 import { lineNumbers, EditorView } from "@codemirror/view";
 import { ref } from "vue";
+import { lightCodeMirrorTheme } from "../../util/codemirror-theme";
 
 export default {
     name: "GlobalEnv",
@@ -50,18 +51,24 @@ export default {
             return null;
         };
 
-        const extensionsEnv = [
-            editorTheme,
+        const baseExtensionsEnv = [
             python(),
             lineNumbers(),
             EditorView.focusChangeEffect.of(focusEffectHandler),
         ];
 
         return { editorFocus,
-            extensionsEnv };
+            baseExtensionsEnv };
     },
 
     computed: {
+        extensionsEnv() {
+            return [
+                ...(this.$root.isDark ? [ editorTheme ] : lightCodeMirrorTheme),
+                ...this.baseExtensionsEnv,
+            ];
+        },
+
         settings() {
             return this.$parent.$parent.$parent.settings;
         },
@@ -91,7 +98,7 @@ export default {
     font-family: 'JetBrains Mono', monospace;
     font-size: 14px;
 
-    &.edit-mode {
+    .dark &.edit-mode {
         background-color: #2c2f38 !important;
     }
 }
