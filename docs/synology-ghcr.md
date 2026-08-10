@@ -32,8 +32,17 @@ services:
 
     environment:
       - DOCKGE_STACKS_DIR=/volume1/docker/stacks
+      - DOCKER_API_VERSION=1.43
       - TZ=Asia/Dhaka
 ```
+
+`DOCKER_API_VERSION=1.43` is a compatibility setting for this Synology deployment,
+not a requirement for every Docker host. The Docker CLI bundled in the current
+image may use a newer API, while the Synology Docker daemon used here supports
+Docker API versions only up to 1.43. Without the override, Dockge may start
+successfully, but Docker operations, stack discovery, and container statistics
+can fail with the observed runtime error: `client version 1.53 is too new. Maximum
+supported API version is 1.43`.
 
 Keep any additional environment values already present in the production stack.
 In particular, do not change the `/app/data` host path or either side of the
