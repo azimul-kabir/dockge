@@ -505,6 +505,7 @@ export default defineComponent({
     .function .btn {
         min-height: 34px;
         padding: 0.3rem 0.6rem;
+        border-radius: 7px;
         font-size: 0.8125rem;
         line-height: 1.2;
     }
