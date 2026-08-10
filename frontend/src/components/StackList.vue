@@ -459,7 +459,11 @@ export default {
 
 .search-icon {
     padding: 10px;
-    color: #c0c0c0;
+    color: #6c757d;
+
+    .dark & {
+        color: #c0c0c0;
+    }
 
     // Clear filter button (X)
     svg[data-icon="times"] {
@@ -511,11 +515,15 @@ export default {
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
-    color: $dark-font-color3;
+    color: #495057;
     padding-left: 10px;
     padding-right: 10px;
     display: flex;
     align-items: center;
     user-select: none;
+
+    .dark & {
+        color: $dark-font-color3;
+    }
 }
 </style>

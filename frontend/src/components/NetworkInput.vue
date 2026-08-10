@@ -198,7 +198,11 @@ export default {
 @import "../styles/vars.scss";
 
 .list-group {
-    background-color: $dark-bg2;
+    background-color: #fff;
+
+    .dark & {
+        background-color: $dark-bg2;
+    }
 
     li {
         display: flex;
@@ -207,13 +211,33 @@ export default {
 
         .domain-input {
             flex-grow: 1;
-            background-color: $dark-bg2;
+            background-color: transparent;
             border: none;
-            color: $dark-font-color;
+            color: #212529;
             outline: none;
 
             &::placeholder {
-                color: #1d2634;
+                color: #6c757d;
+                opacity: 1;
+            }
+
+            &:disabled {
+                color: #6c757d;
+                -webkit-text-fill-color: #6c757d;
+            }
+
+            .dark & {
+                background-color: $dark-bg2;
+                color: $dark-font-color;
+
+                &::placeholder {
+                    color: #1d2634;
+                }
+
+                &:disabled {
+                    color: $dark-font-color;
+                    -webkit-text-fill-color: $dark-font-color;
+                }
             }
         }
     }

@@ -152,7 +152,11 @@ export default {
     }
     .endpoint {
         font-size: 12px;
-        color: $dark-font-color3;
+        color: #495057;
+
+        .dark & {
+            color: $dark-font-color3;
+        }
     }
 }
 
@@ -175,7 +179,12 @@ export default {
 }
 
 .dim {
-    opacity: 0.5;
+    color: #6c757d;
+
+    .dark & {
+        color: inherit;
+        opacity: 0.5;
+    }
 }
 
 @media (min-width: 768px) {
