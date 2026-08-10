@@ -104,12 +104,3 @@ export const router = createRouter({
     history: createWebHistory(),
     routes,
 });
-
-router.afterEach((to, from, failure) => {
-    console.log("[router-debug] afterEach", {
-        from: from.fullPath,
-        to: to.fullPath,
-        failure,
-        finalPath: router.currentRoute.value.fullPath,
-    });
-});
