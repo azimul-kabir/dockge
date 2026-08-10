@@ -60,7 +60,7 @@
 
                 <button v-if="isEditMode && !isNewComposeRoute" class="btn btn-normal edit-cancel" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
                 <button v-if="isEditMode && isNewComposeRoute" class="btn btn-normal edit-cancel" :disabled="processing" @click="cancelStack">{{ $t("cancel") }}</button>
-                <button v-if="!isEditMode" class="btn btn-danger" :disabled="processing" @click="showDeleteDialog = !showDeleteDialog">
+                <button v-if="!isEditMode" class="btn btn-danger stack-delete-action" :disabled="processing" @click="showDeleteDialog = !showDeleteDialog">
                     <font-awesome-icon icon="trash" class="me-1" />
                     {{ $t("deleteStack") }}
                 </button>
@@ -1095,8 +1095,12 @@ export default {
 .stack-section-heading {
     padding-bottom: 0.65rem;
     margin-bottom: 1.25rem;
-    border-bottom: 1px solid rgba(127, 127, 127, 0.25);
+    border-bottom: 1px solid #ced4da;
     font-size: 1.35rem;
+
+    .dark & {
+        border-bottom-color: rgba(127, 127, 127, 0.25);
+    }
 }
 
 .editor-heading {
@@ -1122,7 +1126,11 @@ export default {
 
 .stack-section-filename {
     font-size: 1rem;
-    color: $dark-font-color3;
+    color: #495057;
+
+    .dark & {
+        color: $dark-font-color3;
+    }
 }
 
 .network-fieldset {
@@ -1132,7 +1140,6 @@ export default {
     border: 0;
 
     .read-only {
-        opacity: 0.8;
         pointer-events: none;
     }
 }
@@ -1150,7 +1157,11 @@ export default {
 
 .agent-name {
     font-size: 13px;
-    color: $dark-font-color3;
+    color: #495057;
+
+    .dark & {
+        color: $dark-font-color3;
+    }
 }
 
 @media (max-width: 767.98px) {
@@ -1180,6 +1191,45 @@ export default {
 
     .stack-actions.mobile-edit-actions {
         display: none;
+    }
+
+    .stack-actions:not(.mobile-edit-actions) {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.5rem;
+        width: 100%;
+
+        .stack-primary-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.5rem;
+            width: 100%;
+            margin-right: 0 !important;
+
+            > * {
+                width: 100%;
+                min-width: 0;
+                min-height: 44px;
+                margin-left: 0 !important;
+                border-radius: 0.5rem !important;
+            }
+
+            > :last-child:nth-child(odd) {
+                grid-column: 1 / -1;
+            }
+
+            :deep(.edit-more > .btn) {
+                width: 100%;
+                min-height: 44px;
+                border-radius: 0.5rem !important;
+            }
+        }
+
+        .stack-delete-action {
+            width: 100%;
+            min-height: 44px;
+            border-radius: 0.5rem;
+        }
     }
 
     .mobile-editor-actions-slot {
