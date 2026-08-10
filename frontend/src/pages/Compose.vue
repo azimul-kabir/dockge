@@ -184,7 +184,20 @@
                             Wrap {{ composeWrapEnabled ? "On" : "Off" }}
                         </button>
                     </div>
-                    <div id="compose-mobile-actions" class="mobile-editor-actions-slot"></div>
+                    <div v-if="isEditMode && activeEditorSection === 'compose'" class="mobile-editor-actions-slot">
+                        <div class="mobile-editor-actions" aria-label="Editor actions">
+                            <button v-if="!isNewComposeRoute" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
+                            <button v-else class="btn btn-normal" :disabled="processing" @click="cancelStack">{{ $t("cancel") }}</button>
+                            <button class="btn btn-normal" :disabled="processing" @click="saveStack">
+                                <font-awesome-icon icon="save" class="me-1" />
+                                {{ $t("saveStackDraft") }}
+                            </button>
+                            <button class="btn btn-primary" :disabled="processing" @click="deployStack">
+                                <font-awesome-icon icon="rocket" class="me-1" />
+                                {{ $t("deployStack") }}
+                            </button>
+                        </div>
+                    </div>
                     <h4 class="mb-3 stack-section-filename">{{ stack.composeFileName }}</h4>
 
                     <!-- YAML editor -->
@@ -214,7 +227,20 @@
                             Wrap {{ environmentWrapEnabled ? "On" : "Off" }}
                         </button>
                     </div>
-                    <div id="environment-mobile-actions" class="mobile-editor-actions-slot"></div>
+                    <div v-if="isEditMode && activeEditorSection === 'environment'" class="mobile-editor-actions-slot">
+                        <div class="mobile-editor-actions" aria-label="Editor actions">
+                            <button v-if="!isNewComposeRoute" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
+                            <button v-else class="btn btn-normal" :disabled="processing" @click="cancelStack">{{ $t("cancel") }}</button>
+                            <button class="btn btn-normal" :disabled="processing" @click="saveStack">
+                                <font-awesome-icon icon="save" class="me-1" />
+                                {{ $t("saveStackDraft") }}
+                            </button>
+                            <button class="btn btn-primary" :disabled="processing" @click="deployStack">
+                                <font-awesome-icon icon="rocket" class="me-1" />
+                                {{ $t("deployStack") }}
+                            </button>
+                        </div>
+                    </div>
                     <h4 class="mb-3 stack-section-filename">.env</h4>
                     <div class="shadow-box mb-3 editor-box" :class="{ 'edit-mode': isEditMode, 'keyboard-active-editor-box': mobileKeyboardOpen && activeEditorSection === 'environment' }">
                         <code-mirror
@@ -231,21 +257,6 @@
                         />
                     </div>
                 </section>
-
-                <Teleport v-if="isEditMode" :to="mobileEditorActionsTarget">
-                    <div class="mobile-editor-actions" aria-label="Editor actions">
-                        <button v-if="!isNewComposeRoute" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
-                        <button v-else class="btn btn-normal" :disabled="processing" @click="cancelStack">{{ $t("cancel") }}</button>
-                        <button class="btn btn-normal" :disabled="processing" @click="saveStack">
-                            <font-awesome-icon icon="save" class="me-1" />
-                            {{ $t("saveStackDraft") }}
-                        </button>
-                        <button class="btn btn-primary" :disabled="processing" @click="deployStack">
-                            <font-awesome-icon icon="rocket" class="me-1" />
-                            {{ $t("deployStack") }}
-                        </button>
-                    </div>
-                </Teleport>
 
                 <section class="stack-section" aria-labelledby="networks-heading">
                     <h2 id="networks-heading" class="stack-section-heading">Networks</h2>
@@ -469,10 +480,6 @@ export default {
 
         mobileKeyboardOpen() {
             return this.mobileKeyboardOffset > 0;
-        },
-
-        mobileEditorActionsTarget() {
-            return `#${this.activeEditorSection}-mobile-actions`;
         },
 
         terminalName() {
