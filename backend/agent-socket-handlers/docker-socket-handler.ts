@@ -3,7 +3,7 @@ import { DockgeServer } from "../dockge-server";
 import { callbackError, callbackResult, checkLogin, DockgeSocket, ValidationError } from "../util-server";
 import { Stack } from "../stack";
 import { AgentSocket } from "../../common/agent-socket";
-import { getConfigRevision, listConfigRevisions } from "../config-history";
+import { getConfigRevision, listConfigRevisionsWithChanges } from "../config-history";
 
 export class DockerSocketHandler extends AgentSocketHandler {
     create(socket : DockgeSocket, server : DockgeServer, agentSocket : AgentSocket) {
@@ -48,7 +48,12 @@ export class DockerSocketHandler extends AgentSocketHandler {
                     throw new ValidationError("Stack name must be a string");
                 }
                 const stack = await Stack.getStack(server, stackName);
-                callbackResult({ ok: true, revisions: await listConfigRevisions(stack.path) }, callback);
+                const current = {
+                    composeYAML: stack.composeYAML,
+                    composeENV: stack.composeENV,
+                    composeOverrideYAML: stack.composeOverrideYAML,
+                };
+                callbackResult({ ok: true, revisions: await listConfigRevisionsWithChanges(stack.path, current) }, callback);
             } catch (e) {
                 callbackError(e, callback);
             }
