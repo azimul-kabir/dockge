@@ -1,6 +1,8 @@
+import yaml from "yaml";
+
 export interface EnvironmentVariableStatus {
     name: string;
-    status: "defined" | "not-in-stack" | "unused";
+    status: "defined" | "not-in-stack" | "not-referenced";
 }
 
 const COMPOSE_VARIABLE_PATTERN = /\$\{([A-Za-z_][A-Za-z0-9_]*)(?:(?::?[-+?])[^}]*)?\}/g;
@@ -30,6 +32,21 @@ export function buildEnvironmentVariableStatuses(
             name,
             status: referencedNames.has(name)
                 ? Object.prototype.hasOwnProperty.call(stackEnvironment, name) ? "defined" : "not-in-stack"
-                : "unused",
+                : "not-referenced",
         }));
+}
+
+export function composeUsesEnvFile(composeYAML: string): boolean {
+    try {
+        const compose = yaml.parse(composeYAML);
+        const services = compose?.services;
+
+        return services !== null && typeof services === "object" && !Array.isArray(services)
+            && Object.values(services).some((service) => service !== null
+                && typeof service === "object"
+                && !Array.isArray(service)
+                && Object.prototype.hasOwnProperty.call(service, "env_file"));
+    } catch {
+        return false;
+    }
 }
