@@ -8,6 +8,18 @@ const MAX_REVISIONS = 20;
 export interface ConfigRevisionSummary {
     id: string;
     createdAt: string;
+    changes?: ConfigChangeSummary;
+}
+
+export interface LineChangeCount {
+    additions: number;
+    deletions: number;
+}
+
+export interface ConfigChangeSummary {
+    compose: LineChangeCount;
+    env: LineChangeCount;
+    override: LineChangeCount;
 }
 
 export interface ConfigRevision extends ConfigRevisionSummary {
@@ -28,6 +40,69 @@ function revisionHash(composeYAML: string, composeENV: string, composeOverrideYA
         .update("\0")
         .update(composeOverrideYAML)
         .digest("hex");
+}
+
+function lines(content: string): string[] {
+    if (content === "") {
+        return [];
+    }
+    const result = content.split("\n");
+    if (result[result.length - 1] === "") {
+        result.pop();
+    }
+    return result;
+}
+
+export function countLineChanges(before: string, after: string): LineChangeCount {
+    const beforeLines = lines(before);
+    const afterLines = lines(after);
+    const previous = new Array(afterLines.length + 1).fill(0);
+
+    for (const beforeLine of beforeLines) {
+        let diagonal = 0;
+        for (let j = 1; j <= afterLines.length; j++) {
+            const above = previous[j];
+            if (beforeLine === afterLines[j - 1]) {
+                previous[j] = diagonal + 1;
+            } else {
+                previous[j] = Math.max(previous[j], previous[j - 1]);
+            }
+            diagonal = above;
+        }
+    }
+
+    const unchanged = previous[afterLines.length];
+    return {
+        additions: afterLines.length - unchanged,
+        deletions: beforeLines.length - unchanged,
+    };
+}
+
+function compareConfigs(before: ConfigRevision, after: ConfigRevision): ConfigChangeSummary {
+    return {
+        compose: countLineChanges(before.composeYAML, after.composeYAML),
+        env: countLineChanges(before.composeENV, after.composeENV),
+        override: countLineChanges(before.composeOverrideYAML, after.composeOverrideYAML),
+    };
+}
+
+export async function listConfigRevisionsWithChanges(stackDir: string, current: Omit<ConfigRevision, "id" | "createdAt">): Promise<ConfigRevisionSummary[]> {
+    const summaries = await listConfigRevisions(stackDir);
+    const revisions = (await Promise.all(summaries.map(revision => getConfigRevision(stackDir, revision.id))))
+        .filter((revision): revision is ConfigRevision => revision !== null);
+
+    return buildConfigRevisionSummaries(revisions, current);
+}
+
+export function buildConfigRevisionSummaries(revisions: ConfigRevision[], current: Omit<ConfigRevision, "id" | "createdAt">): ConfigRevisionSummary[] {
+    return revisions.map((revision, index) => {
+        const newer = index === 0 ? { ...current, id: "current", createdAt: "" } : revisions[index - 1];
+        return {
+            id: revision.id,
+            createdAt: revision.createdAt,
+            changes: compareConfigs(revision, newer),
+        };
+    });
 }
 
 export async function createConfigRevision(stackDir: string, composeYAML: string, composeENV: string, composeOverrideYAML: string) {
