@@ -20,6 +20,7 @@ import { InteractiveTerminal, Terminal } from "./terminal";
 import childProcessAsync from "promisify-child-process";
 import { Settings } from "./settings";
 import { findComposeOverrideFile } from "./compose-overrides";
+import { createConfigRevision } from "./config-history";
 
 export class Stack {
 
@@ -218,6 +219,10 @@ export class Stack {
             if (!await fileExists(dir)) {
                 throw new ValidationError("Stack not found");
             }
+
+            // Preserve the current on-disk configuration before replacing it.
+            const currentStack = new Stack(this.server, this.name);
+            await createConfigRevision(dir, currentStack.composeYAML, currentStack.composeENV, currentStack.composeOverrideYAML);
         }
 
         // Write or overwrite the compose.yaml
