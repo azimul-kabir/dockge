@@ -723,7 +723,7 @@ export default {
 
         loadHistory() {
             this.historyLoading = true;
-            this.$root.emitAgent(this.endpoint, "listStackConfigHistory", this.stack.name, (res) => {
+            this.$root.emitAgent(this.endpoint, "getConfigHistory", this.stack.name, (res) => {
                 this.historyLoading = false;
                 if (res.ok) {
                     this.historyRevisions = res.revisions || [];
@@ -735,7 +735,7 @@ export default {
 
         previewRevision(revisionId) {
             this.processing = true;
-            this.$root.emitAgent(this.endpoint, "getStackConfigRevision", this.stack.name, revisionId, (res) => {
+            this.$root.emitAgent(this.endpoint, "getConfigRevision", this.stack.name, revisionId, (res) => {
                 this.processing = false;
                 if (!res.ok) {
                     this.$root.toastRes(res);
@@ -757,7 +757,7 @@ export default {
                 return;
             }
             this.processing = true;
-            this.$root.emitAgent(this.endpoint, "restoreStackConfigRevision", this.stack.name, revisionId, (res) => {
+            this.$root.emitAgent(this.endpoint, "restoreConfigRevision", this.stack.name, revisionId, (res) => {
                 this.processing = false;
                 this.$root.toastRes(res);
                 if (res.ok) {
