@@ -60,7 +60,7 @@
                         History
                     </button>
 
-                    <BDropdown right text="" variant="normal" class="edit-more">
+                    <BDropdown right text="More" variant="normal" class="edit-more">
                         <BDropdownItem @click="downStack">
                             <font-awesome-icon icon="stop" class="me-1" />
                             {{ $t("downStack") }}
@@ -88,7 +88,6 @@
                         <div v-for="revision in historyRevisions" :key="revision.id" class="history-row">
                             <div class="history-meta">
                                 <strong>{{ formatRevisionDate(revision.createdAt) }}</strong>
-                                <span class="text-muted">{{ revision.id }}</span>
                             </div>
                             <div class="history-actions">
                                 <button class="btn btn-sm btn-normal" :disabled="processing" @click="previewRevision(revision.id)">Preview</button>
@@ -345,6 +344,28 @@
                             @change="yamlCodeChange"
                         />
                     </div>
+                    <div v-if="environmentVariableStatuses.length > 0" class="shadow-box environment-intelligence" aria-labelledby="environment-variables-heading">
+                        <div class="environment-intelligence-heading">
+                            <h4 id="environment-variables-heading">Environment Variables</h4>
+                            <span class="text-muted">Names and stack .env status only</span>
+                        </div>
+                        <div class="environment-variable-list">
+                            <div v-for="variable in environmentVariableStatuses" :key="variable.name" class="environment-variable-row">
+                                <span class="environment-variable-name">
+                                    <span class="environment-variable-symbol" :class="`is-${variable.status}`" aria-hidden="true">{{ environmentVariableSymbol(variable.status) }}</span>
+                                    <code>{{ variable.name }}</code>
+                                </span>
+                                <span
+                                    class="environment-variable-status"
+                                    :class="`is-${variable.status}`"
+                                    :title="variable.status === 'not-in-stack' ? 'This value may be supplied by global.env or another Compose environment source.' : undefined"
+                                >{{ environmentVariableStatusLabel(variable.status) }}</span>
+                            </div>
+                        </div>
+                        <p v-if="hasVariablesNotInStackEnvironment" class="environment-intelligence-note text-muted">
+                            Variables not in stack .env may be supplied by global.env or another Compose environment source.
+                        </p>
+                    </div>
                 </section>
 
                 <section class="stack-section" aria-labelledby="networks-heading">
@@ -400,6 +421,7 @@ import { BModal } from "bootstrap-vue-next";
 import NetworkInput from "../components/NetworkInput.vue";
 import dotenv from "dotenv";
 import { ref } from "vue";
+import { buildEnvironmentVariableStatuses } from "../util/environment-intelligence";
 
 const template = `
 services:
@@ -515,6 +537,15 @@ export default {
                 ...this.extensionsEnv,
             ];
             return this.environmentWrapEnabled ? [ ...extensions, EditorView.lineWrapping ] : extensions;
+        },
+
+        environmentVariableStatuses() {
+            const stackEnvironment = dotenv.parse(this.stack.composeENV || "");
+            return buildEnvironmentVariableStatuses(this.stack.composeYAML || "", stackEnvironment);
+        },
+
+        hasVariablesNotInStackEnvironment() {
+            return this.environmentVariableStatuses.some((variable) => variable.status === "not-in-stack");
         },
 
         endpointDisplay() {
@@ -722,6 +753,22 @@ export default {
         document.body.classList.remove("dockge-editor-fullscreen");
     },
     methods: {
+        environmentVariableSymbol(status) {
+            return {
+                defined: "✓",
+                "not-in-stack": "⚠",
+                unused: "○",
+            }[status];
+        },
+
+        environmentVariableStatusLabel(status) {
+            return {
+                defined: "Defined in .env",
+                "not-in-stack": "Not in stack .env",
+                unused: "Unused",
+            }[status];
+        },
+
         toggleHistory() {
             this.showHistory = !this.showHistory;
             if (this.showHistory) {
@@ -1333,6 +1380,98 @@ export default {
     gap: 0.5rem;
 }
 
+.environment-intelligence {
+    padding: 1rem;
+}
+
+.environment-intelligence-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+
+    h4 {
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    .text-muted {
+        font-size: 0.8rem;
+    }
+}
+
+.environment-variable-list {
+    display: grid;
+}
+
+.environment-variable-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 0;
+    padding: 0.45rem 0;
+    border-top: 1px solid rgba(127, 127, 127, 0.2);
+}
+
+.environment-variable-name {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+
+    code {
+        overflow-wrap: anywhere;
+    }
+}
+
+.environment-variable-symbol {
+    width: 1.5rem;
+    flex: 0 0 auto;
+    font-weight: 700;
+
+    &.is-defined {
+        color: #198754;
+    }
+
+    &.is-not-in-stack {
+        color: #b58105;
+    }
+
+    &.is-unused {
+        color: #6c757d;
+    }
+}
+
+.environment-variable-status {
+    flex: 0 0 auto;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(108, 117, 125, 0.12);
+    color: #5f676e;
+    font-size: 0.75rem;
+    font-weight: 600;
+
+    &.is-defined {
+        background: rgba(25, 135, 84, 0.12);
+        color: #157347;
+    }
+
+    &.is-not-in-stack {
+        background: rgba(255, 193, 7, 0.18);
+        color: #765a05;
+    }
+
+    .dark & {
+        color: $dark-font-color3;
+    }
+}
+
+.environment-intelligence-note {
+    margin: 0.5rem 0 0;
+    font-size: 0.8rem;
+}
+
 .history-list {
     display: grid;
     gap: 0.75rem;
@@ -1355,11 +1494,6 @@ export default {
     display: flex;
     flex-direction: column;
     min-width: 0;
-}
-
-.history-meta .text-muted {
-    overflow-wrap: anywhere;
-    font-size: 0.8rem;
 }
 
 .history-actions {
