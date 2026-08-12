@@ -177,12 +177,18 @@
                     </section>
                 </div>
 
-                <section ref="composeSection" class="stack-section" aria-labelledby="compose-heading">
+                <section ref="composeSection" class="stack-section" :class="{ 'editor-fullscreen-section': fullscreenEditor === 'compose' }" aria-labelledby="compose-heading">
                     <div class="stack-section-heading editor-heading">
                         <h2 id="compose-heading">Compose</h2>
-                        <button type="button" class="btn btn-sm btn-normal wrap-toggle" :aria-pressed="composeWrapEnabled" @click="composeWrapEnabled = !composeWrapEnabled">
-                            Wrap {{ composeWrapEnabled ? "On" : "Off" }}
-                        </button>
+                        <div class="editor-heading-actions">
+                            <button type="button" class="btn btn-sm btn-normal wrap-toggle" :aria-pressed="composeWrapEnabled" @click="composeWrapEnabled = !composeWrapEnabled">
+                                Wrap {{ composeWrapEnabled ? "On" : "Off" }}
+                            </button>
+                            <button type="button" class="btn btn-sm btn-normal fullscreen-toggle" :aria-pressed="fullscreenEditor === 'compose'" @click="toggleFullscreenEditor('compose')">
+                                <font-awesome-icon :icon="fullscreenEditor === 'compose' ? 'compress' : 'expand'" class="me-1" />
+                                {{ fullscreenEditor === 'compose' ? "Exit" : "Full screen" }}
+                            </button>
+                        </div>
                     </div>
                     <div v-if="isEditMode && activeEditorSection === 'compose'" class="mobile-editor-actions-slot">
                         <div class="mobile-editor-actions" aria-label="Editor actions">
@@ -201,7 +207,7 @@
                     <h4 class="mb-3 stack-section-filename">{{ stack.composeFileName }}</h4>
 
                     <!-- YAML editor -->
-                    <div class="shadow-box mb-3 editor-box" :class="{ 'edit-mode': isEditMode, 'keyboard-active-editor-box': mobileKeyboardOpen && activeEditorSection === 'compose' }">
+                    <div class="shadow-box mb-3 editor-box" :class="{ 'edit-mode': isEditMode, 'keyboard-active-editor-box': mobileKeyboardOpen && activeEditorSection === 'compose', 'fullscreen-editor-box': fullscreenEditor === 'compose' }">
                         <code-mirror
                             ref="editor"
                             v-model="stack.composeYAML"
@@ -220,12 +226,18 @@
                     </div>
                 </section>
 
-                <section ref="environmentSection" class="stack-section" aria-labelledby="environment-heading">
+                <section ref="environmentSection" class="stack-section" :class="{ 'editor-fullscreen-section': fullscreenEditor === 'environment' }" aria-labelledby="environment-heading">
                     <div class="stack-section-heading editor-heading">
                         <h2 id="environment-heading">Environment</h2>
-                        <button type="button" class="btn btn-sm btn-normal wrap-toggle" :aria-pressed="environmentWrapEnabled" @click="environmentWrapEnabled = !environmentWrapEnabled">
-                            Wrap {{ environmentWrapEnabled ? "On" : "Off" }}
-                        </button>
+                        <div class="editor-heading-actions">
+                            <button type="button" class="btn btn-sm btn-normal wrap-toggle" :aria-pressed="environmentWrapEnabled" @click="environmentWrapEnabled = !environmentWrapEnabled">
+                                Wrap {{ environmentWrapEnabled ? "On" : "Off" }}
+                            </button>
+                            <button type="button" class="btn btn-sm btn-normal fullscreen-toggle" :aria-pressed="fullscreenEditor === 'environment'" @click="toggleFullscreenEditor('environment')">
+                                <font-awesome-icon :icon="fullscreenEditor === 'environment' ? 'compress' : 'expand'" class="me-1" />
+                                {{ fullscreenEditor === 'environment' ? "Exit" : "Full screen" }}
+                            </button>
+                        </div>
                     </div>
                     <div v-if="isEditMode && activeEditorSection === 'environment'" class="mobile-editor-actions-slot">
                         <div class="mobile-editor-actions" aria-label="Editor actions">
@@ -242,7 +254,7 @@
                         </div>
                     </div>
                     <h4 class="mb-3 stack-section-filename">.env</h4>
-                    <div class="shadow-box mb-3 editor-box" :class="{ 'edit-mode': isEditMode, 'keyboard-active-editor-box': mobileKeyboardOpen && activeEditorSection === 'environment' }">
+                    <div class="shadow-box mb-3 editor-box" :class="{ 'edit-mode': isEditMode, 'keyboard-active-editor-box': mobileKeyboardOpen && activeEditorSection === 'environment', 'fullscreen-editor-box': fullscreenEditor === 'environment' }">
                         <code-mirror
                             ref="envEditor"
                             v-model="stack.composeENV"
@@ -393,6 +405,7 @@ export default {
             mobileEditorHeight: 0,
             mobileEditorNeedsAlignment: true,
             activeEditorSection: "compose",
+            fullscreenEditor: null,
         };
     },
     computed: {
@@ -595,13 +608,35 @@ export default {
         window.visualViewport?.addEventListener("resize", this.updateMobileViewport);
         window.visualViewport?.addEventListener("scroll", this.updateMobileViewport);
         window.addEventListener("orientationchange", this.updateMobileViewport);
+        window.addEventListener("keydown", this.handleFullscreenEscape);
     },
     unmounted() {
         window.visualViewport?.removeEventListener("resize", this.updateMobileViewport);
         window.visualViewport?.removeEventListener("scroll", this.updateMobileViewport);
         window.removeEventListener("orientationchange", this.updateMobileViewport);
+        window.removeEventListener("keydown", this.handleFullscreenEscape);
+        document.body.classList.remove("dockge-editor-fullscreen");
     },
     methods: {
+        toggleFullscreenEditor(section) {
+            this.fullscreenEditor = this.fullscreenEditor === section ? null : section;
+            document.body.classList.toggle("dockge-editor-fullscreen", Boolean(this.fullscreenEditor));
+            this.activeEditorSection = section;
+            this.mobileEditorNeedsAlignment = true;
+            this.$nextTick(() => {
+                const editorRef = section === "compose" ? this.$refs.editor : this.$refs.envEditor;
+                editorRef?.view?.requestMeasure();
+                editorRef?.view?.focus();
+            });
+        },
+
+        handleFullscreenEscape(event) {
+            if (event.key === "Escape" && this.fullscreenEditor) {
+                this.fullscreenEditor = null;
+                document.body.classList.remove("dockge-editor-fullscreen");
+            }
+        },
+
         updateMobileViewport() {
             if (!window.matchMedia("(max-width: 767.98px)").matches || !window.visualViewport) {
                 this.mobileKeyboardOffset = 0;
@@ -741,6 +776,8 @@ export default {
             this.stopDockerStatsTimeout = true;
             clearTimeout(serviceStatusTimeout);
             clearTimeout(dockerStatsTimeout);
+            this.fullscreenEditor = null;
+            document.body.classList.remove("dockge-editor-fullscreen");
 
             // Leave Combined Terminal
             console.debug("leaveCombinedTerminal", this.endpoint, this.stack.name);
@@ -1087,9 +1124,24 @@ export default {
     }
 }
 
-.wrap-toggle {
+.editor-heading-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.wrap-toggle,
+.fullscreen-toggle {
     flex: 0 0 auto;
+}
+
+.wrap-toggle {
     min-width: 78px;
+}
+
+.fullscreen-toggle {
+    min-width: 108px;
 }
 
 .back-to-stacks {
@@ -1123,6 +1175,52 @@ export default {
     font-size: 14px;
 }
 
+.editor-fullscreen-section {
+    position: fixed;
+    inset: 0;
+    z-index: 2050;
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    height: 100dvh;
+    margin: 0;
+    padding: 1rem;
+    overflow: hidden;
+    background: #f8f9fa;
+
+    .dark & {
+        background: $dark-bg;
+    }
+
+    .editor-heading {
+        flex: 0 0 auto;
+        margin-bottom: 0.75rem;
+    }
+
+    .stack-section-filename {
+        flex: 0 0 auto;
+        margin-bottom: 0.75rem !important;
+    }
+
+    .mobile-editor-actions-slot {
+        flex: 0 0 auto;
+    }
+
+    .editor-box {
+        flex: 1 1 auto;
+        min-height: 0;
+        margin-bottom: 0 !important;
+        overflow: hidden;
+    }
+
+    :deep(.vue-codemirror),
+    :deep(.cm-editor),
+    :deep(.cm-scroller) {
+        height: 100%;
+        min-height: 0;
+    }
+}
+
 .mobile-editor-actions-slot {
     display: none;
 }
@@ -1151,8 +1249,19 @@ export default {
         gap: 0.5rem;
     }
 
-    .wrap-toggle {
+    .editor-heading-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .wrap-toggle,
+    .fullscreen-toggle {
         min-height: 40px;
+    }
+
+    .editor-heading-actions > .btn {
+        flex: 1 1 0;
+        min-width: 0;
     }
 
     .stack-title {
@@ -1237,6 +1346,19 @@ export default {
         }
     }
 
+    .editor-fullscreen-section {
+        padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
+    }
+
+    .editor-fullscreen-section .editor-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .editor-fullscreen-section .mobile-editor-actions {
+        position: static;
+    }
+
     .stack-section {
         margin-bottom: 2rem;
     }
@@ -1268,10 +1390,10 @@ export default {
         -webkit-overflow-scrolling: touch;
     }
 
-    .keyboard-active-editor-box,
-    .keyboard-active-editor-box :deep(.vue-codemirror),
-    .keyboard-active-editor-box :deep(.cm-editor),
-    .keyboard-active-editor-box :deep(.cm-scroller) {
+    .keyboard-active-editor-box:not(.fullscreen-editor-box),
+    .keyboard-active-editor-box:not(.fullscreen-editor-box) :deep(.vue-codemirror),
+    .keyboard-active-editor-box:not(.fullscreen-editor-box) :deep(.cm-editor),
+    .keyboard-active-editor-box:not(.fullscreen-editor-box) :deep(.cm-scroller) {
         height: var(--mobile-editor-height);
         min-height: var(--mobile-editor-height);
     }
