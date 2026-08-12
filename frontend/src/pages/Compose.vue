@@ -260,7 +260,7 @@
                     </div>
                 </section>
 
-                <section v-if="!isAdd && stack.composeOverrideYAML && stack.composeOverrideYAML.trim() !== ''" ref="overrideSection" class="stack-section" :class="{ 'editor-fullscreen-section': fullscreenEditor === 'override' }" aria-labelledby="override-heading">
+                <section v-if="!isAdd && stack.composeOverrideExists" ref="overrideSection" class="stack-section" :class="{ 'editor-fullscreen-section': fullscreenEditor === 'override' }" aria-labelledby="override-heading">
                     <div class="stack-section-heading editor-heading">
                         <h2 id="override-heading">Compose Override</h2>
                         <div class="editor-heading-actions">
