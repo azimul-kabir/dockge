@@ -19,37 +19,30 @@
                         <font-awesome-icon icon="rocket" class="me-1" />
                         {{ $t("deployStack") }}
                     </button>
-
                     <button v-if="isEditMode" class="btn btn-normal edit-save" :disabled="processing" @click="saveStack">
                         <font-awesome-icon icon="save" class="me-1" />
                         {{ $t("saveStackDraft") }}
                     </button>
-
                     <button v-if="!isEditMode" class="btn btn-secondary" :disabled="processing" @click="enableEditMode">
                         <font-awesome-icon icon="pen" class="me-1" />
                         {{ $t("editStack") }}
                     </button>
-
                     <button v-if="!isEditMode && !active" class="btn btn-primary" :disabled="processing" @click="startStack">
                         <font-awesome-icon icon="play" class="me-1" />
                         {{ $t("startStack") }}
                     </button>
-
                     <button v-if="!isEditMode && active" class="btn btn-normal " :disabled="processing" @click="restartStack">
                         <font-awesome-icon icon="rotate" class="me-1" />
                         {{ $t("restartStack") }}
                     </button>
-
                     <button v-if="!isEditMode" class="btn btn-normal" :disabled="processing" @click="updateStack">
                         <font-awesome-icon icon="cloud-arrow-down" class="me-1" />
                         {{ $t("updateStack") }}
                     </button>
-
                     <button v-if="!isEditMode && active" class="btn btn-normal" :disabled="processing" @click="stopStack">
                         <font-awesome-icon icon="stop" class="me-1" />
                         {{ $t("stopStack") }}
                     </button>
-
                     <BDropdown right text="" variant="normal" class="edit-more">
                         <BDropdownItem @click="downStack">
                             <font-awesome-icon icon="stop" class="me-1" />
@@ -57,7 +50,6 @@
                         </BDropdownItem>
                     </BDropdown>
                 </div>
-
                 <button v-if="isEditMode && !isNewComposeRoute" class="btn btn-normal edit-cancel" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
                 <button v-if="isEditMode && isNewComposeRoute" class="btn btn-normal edit-cancel" :disabled="processing" @click="cancelStack">{{ $t("cancel") }}</button>
                 <button v-if="!isEditMode" class="btn btn-danger stack-delete-action" :disabled="processing" @click="showDeleteDialog = !showDeleteDialog">
@@ -66,7 +58,6 @@
                 </button>
             </div>
 
-            <!-- URLs -->
             <div v-if="urls.length > 0" class="mb-3">
                 <a v-for="(urlItem, index) in urls" :key="index" target="_blank" :href="urlItem.url">
                     <span class="badge bg-secondary me-2">{{ urlItem.display }}</span>
@@ -77,19 +68,14 @@
                 <div class="runtime-row">
                     <section class="stack-section" aria-labelledby="overview-heading">
                         <h2 id="overview-heading" class="stack-section-heading">Overview</h2>
-
-                        <!-- General -->
                         <div v-if="isAdd">
                             <h4 class="mb-3">{{ $t("general") }}</h4>
                             <div class="shadow-box big-padding mb-3">
-                                <!-- Stack Name -->
                                 <div>
                                     <label for="name" class="form-label">{{ $t("stackName") }}</label>
                                     <input id="name" v-model="stack.name" type="text" class="form-control" required @blur="stackNameToLowercase">
                                     <div class="form-text">{{ $t("Lowercase only") }}</div>
                                 </div>
-
-                                <!-- Endpoint -->
                                 <div class="mt-3">
                                     <label for="name" class="form-label">{{ $t("dockgeAgent") }}</label>
                                     <select v-model="stack.endpoint" class="form-select">
@@ -101,21 +87,11 @@
                             </div>
                         </div>
 
-                        <!-- Containers -->
                         <h4 class="mb-3">{{ $tc("container", 2) }}</h4>
-
                         <div v-if="isEditMode" class="input-group mb-3">
-                            <input
-                                v-model="newContainerName"
-                                :placeholder="$t(`New Container Name...`)"
-                                class="form-control"
-                                @keyup.enter="addContainer"
-                            />
-                            <button class="btn btn-primary" @click="addContainer">
-                                {{ $t("addContainer") }}
-                            </button>
+                            <input v-model="newContainerName" :placeholder="$t(`New Container Name...`)" class="form-control" @keyup.enter="addContainer" />
+                            <button class="btn btn-primary" @click="addContainer">{{ $t("addContainer") }}</button>
                         </div>
-
                         <div ref="containerList">
                             <Container
                                 v-for="(service, name) in jsonConfig.services"
@@ -130,18 +106,12 @@
                                 @restart-service="restartService"
                             />
                         </div>
-
                         <button v-if="false && isEditMode && jsonConfig.services && Object.keys(jsonConfig.services).length > 0" class="btn btn-normal mb-3" @click="addContainer">{{ $t("addContainer") }}</button>
-
-                        <!-- General -->
                         <div v-if="isEditMode">
                             <h4 class="mb-3">{{ $t("extra") }}</h4>
                             <div class="shadow-box big-padding mb-3">
-                                <!-- URLs -->
                                 <div class="mb-4">
-                                    <label class="form-label">
-                                        {{ $tc("url", 2) }}
-                                    </label>
+                                    <label class="form-label">{{ $tc("url", 2) }}</label>
                                     <ArrayInput name="urls" :display-name="$t('url')" placeholder="https://" object-type="x-dockge" />
                                 </div>
                             </div>
@@ -150,30 +120,10 @@
 
                     <section class="stack-section" aria-labelledby="logs-heading">
                         <h2 id="logs-heading" class="stack-section-heading">Logs</h2>
-
-                        <!-- Progress Terminal -->
                         <transition name="slide-fade" appear>
-                            <Terminal
-                                v-show="showProgressTerminal"
-                                ref="progressTerminal"
-                                class="mb-3 terminal progress-terminal"
-                                :name="terminalName"
-                                :endpoint="endpoint"
-                                :rows="progressTerminalRows"
-                                @has-data="showProgressTerminal = true; submitted = true;"
-                            ></Terminal>
+                            <Terminal v-show="showProgressTerminal" ref="progressTerminal" class="mb-3 terminal progress-terminal" :name="terminalName" :endpoint="endpoint" :rows="progressTerminalRows" @has-data="showProgressTerminal = true; submitted = true;"></Terminal>
                         </transition>
-
-                        <!-- Combined Terminal Output -->
-                        <Terminal
-                            v-show="!isAdd"
-                            ref="combinedTerminal"
-                            class="mb-3 terminal combined-terminal"
-                            :name="combinedTerminalName"
-                            :endpoint="endpoint"
-                            :rows="combinedTerminalRows"
-                            :cols="combinedTerminalCols"
-                        ></Terminal>
+                        <Terminal v-show="!isAdd" ref="combinedTerminal" class="mb-3 terminal combined-terminal" :name="combinedTerminalName" :endpoint="endpoint" :rows="combinedTerminalRows" :cols="combinedTerminalCols"></Terminal>
                     </section>
                 </div>
 
@@ -181,48 +131,50 @@
                     <div class="stack-section-heading editor-heading">
                         <h2 id="compose-heading">Compose</h2>
                         <div class="editor-heading-actions">
-                            <button type="button" class="btn btn-sm btn-normal wrap-toggle" :aria-pressed="composeWrapEnabled" @click="composeWrapEnabled = !composeWrapEnabled">
-                                Wrap {{ composeWrapEnabled ? "On" : "Off" }}
-                            </button>
+                            <button type="button" class="btn btn-sm btn-normal wrap-toggle" :aria-pressed="composeWrapEnabled" @click="composeWrapEnabled = !composeWrapEnabled">Wrap {{ composeWrapEnabled ? "On" : "Off" }}</button>
                             <button type="button" class="btn btn-sm btn-normal fullscreen-toggle" :aria-pressed="fullscreenEditor === 'compose'" @click="toggleFullscreenEditor('compose')">
                                 <font-awesome-icon :icon="fullscreenEditor === 'compose' ? 'compress' : 'expand'" class="me-1" />
                                 {{ fullscreenEditor === 'compose' ? "Exit" : "Full screen" }}
                             </button>
                         </div>
                     </div>
+                    <EditorActions v-if="false" />
                     <div v-if="isEditMode && activeEditorSection === 'compose'" class="mobile-editor-actions-slot">
                         <div class="mobile-editor-actions" aria-label="Editor actions">
                             <button v-if="!isNewComposeRoute" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
                             <button v-else class="btn btn-normal" :disabled="processing" @click="cancelStack">{{ $t("cancel") }}</button>
-                            <button class="btn btn-normal" :disabled="processing" @click="saveStack">
-                                <font-awesome-icon icon="save" class="me-1" />
-                                {{ $t("saveStackDraft") }}
-                            </button>
-                            <button class="btn btn-primary" :disabled="processing" @click="deployStack">
-                                <font-awesome-icon icon="rocket" class="me-1" />
-                                {{ $t("deployStack") }}
-                            </button>
+                            <button class="btn btn-normal" :disabled="processing" @click="saveStack"><font-awesome-icon icon="save" class="me-1" />{{ $t("saveStackDraft") }}</button>
+                            <button class="btn btn-primary" :disabled="processing" @click="deployStack"><font-awesome-icon icon="rocket" class="me-1" />{{ $t("deployStack") }}</button>
                         </div>
                     </div>
                     <h4 class="mb-3 stack-section-filename">{{ stack.composeFileName }}</h4>
-
-                    <!-- YAML editor -->
                     <div class="shadow-box mb-3 editor-box" :class="{ 'edit-mode': isEditMode, 'keyboard-active-editor-box': mobileKeyboardOpen && activeEditorSection === 'compose', 'fullscreen-editor-box': fullscreenEditor === 'compose' }">
-                        <code-mirror
-                            ref="editor"
-                            v-model="stack.composeYAML"
-                            :extensions="composeExtensions"
-                            minimal
-                            :dark="$root.isDark"
-                            tab="true"
-                            :disabled="!isEditMode"
-                            :hasFocus="editorFocus"
-                            @focus="setActiveEditorSection('compose', $event)"
-                            @change="yamlCodeChange"
-                        />
+                        <code-mirror ref="editor" v-model="stack.composeYAML" :extensions="composeExtensions" minimal :dark="$root.isDark" tab="true" :disabled="!isEditMode" :hasFocus="editorFocus" @focus="setActiveEditorSection('compose', $event)" @change="yamlCodeChange" />
                     </div>
-                    <div v-if="isEditMode" class="mb-3">
-                        {{ yamlError }}
+                    <div v-if="isEditMode" class="mb-3">{{ yamlError }}</div>
+                </section>
+
+                <section v-if="!isAdd && stack.composeOverrideYAML && stack.composeOverrideYAML.trim() !== ''" ref="overrideSection" class="stack-section" :class="{ 'editor-fullscreen-section': fullscreenEditor === 'override' }" aria-labelledby="override-heading">
+                    <div class="stack-section-heading editor-heading">
+                        <h2 id="override-heading">Compose Override</h2>
+                        <div class="editor-heading-actions">
+                            <button type="button" class="btn btn-sm btn-normal wrap-toggle" :aria-pressed="overrideWrapEnabled" @click="overrideWrapEnabled = !overrideWrapEnabled">Wrap {{ overrideWrapEnabled ? "On" : "Off" }}</button>
+                            <button type="button" class="btn btn-sm btn-normal fullscreen-toggle" :aria-pressed="fullscreenEditor === 'override'" @click="toggleFullscreenEditor('override')">
+                                <font-awesome-icon :icon="fullscreenEditor === 'override' ? 'compress' : 'expand'" class="me-1" />
+                                {{ fullscreenEditor === 'override' ? "Exit" : "Full screen" }}
+                            </button>
+                        </div>
+                    </div>
+                    <div v-if="isEditMode && activeEditorSection === 'override'" class="mobile-editor-actions-slot">
+                        <div class="mobile-editor-actions" aria-label="Editor actions">
+                            <button class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
+                            <button class="btn btn-normal" :disabled="processing" @click="saveStack"><font-awesome-icon icon="save" class="me-1" />{{ $t("saveStackDraft") }}</button>
+                            <button class="btn btn-primary" :disabled="processing" @click="deployStack"><font-awesome-icon icon="rocket" class="me-1" />{{ $t("deployStack") }}</button>
+                        </div>
+                    </div>
+                    <h4 class="mb-3 stack-section-filename">{{ stack.composeOverrideFileName || 'compose.override.yaml' }}</h4>
+                    <div class="shadow-box mb-3 editor-box" :class="{ 'edit-mode': isEditMode, 'keyboard-active-editor-box': mobileKeyboardOpen && activeEditorSection === 'override', 'fullscreen-editor-box': fullscreenEditor === 'override' }">
+                        <code-mirror ref="overrideEditor" v-model="stack.composeOverrideYAML" :extensions="overrideExtensions" minimal :dark="$root.isDark" tab="true" :disabled="!isEditMode" :hasFocus="editorFocus" @focus="setActiveEditorSection('override', $event)" @change="yamlCodeChange" />
                     </div>
                 </section>
 
@@ -230,9 +182,7 @@
                     <div class="stack-section-heading editor-heading">
                         <h2 id="environment-heading">Environment</h2>
                         <div class="editor-heading-actions">
-                            <button type="button" class="btn btn-sm btn-normal wrap-toggle" :aria-pressed="environmentWrapEnabled" @click="environmentWrapEnabled = !environmentWrapEnabled">
-                                Wrap {{ environmentWrapEnabled ? "On" : "Off" }}
-                            </button>
+                            <button type="button" class="btn btn-sm btn-normal wrap-toggle" :aria-pressed="environmentWrapEnabled" @click="environmentWrapEnabled = !environmentWrapEnabled">Wrap {{ environmentWrapEnabled ? "On" : "Off" }}</button>
                             <button type="button" class="btn btn-sm btn-normal fullscreen-toggle" :aria-pressed="fullscreenEditor === 'environment'" @click="toggleFullscreenEditor('environment')">
                                 <font-awesome-icon :icon="fullscreenEditor === 'environment' ? 'compress' : 'expand'" class="me-1" />
                                 {{ fullscreenEditor === 'environment' ? "Exit" : "Full screen" }}
@@ -243,59 +193,27 @@
                         <div class="mobile-editor-actions" aria-label="Editor actions">
                             <button v-if="!isNewComposeRoute" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
                             <button v-else class="btn btn-normal" :disabled="processing" @click="cancelStack">{{ $t("cancel") }}</button>
-                            <button class="btn btn-normal" :disabled="processing" @click="saveStack">
-                                <font-awesome-icon icon="save" class="me-1" />
-                                {{ $t("saveStackDraft") }}
-                            </button>
-                            <button class="btn btn-primary" :disabled="processing" @click="deployStack">
-                                <font-awesome-icon icon="rocket" class="me-1" />
-                                {{ $t("deployStack") }}
-                            </button>
+                            <button class="btn btn-normal" :disabled="processing" @click="saveStack"><font-awesome-icon icon="save" class="me-1" />{{ $t("saveStackDraft") }}</button>
+                            <button class="btn btn-primary" :disabled="processing" @click="deployStack"><font-awesome-icon icon="rocket" class="me-1" />{{ $t("deployStack") }}</button>
                         </div>
                     </div>
                     <h4 class="mb-3 stack-section-filename">.env</h4>
                     <div class="shadow-box mb-3 editor-box" :class="{ 'edit-mode': isEditMode, 'keyboard-active-editor-box': mobileKeyboardOpen && activeEditorSection === 'environment', 'fullscreen-editor-box': fullscreenEditor === 'environment' }">
-                        <code-mirror
-                            ref="envEditor"
-                            v-model="stack.composeENV"
-                            :extensions="environmentExtensions"
-                            minimal
-                            :dark="$root.isDark"
-                            tab="true"
-                            :disabled="!isEditMode"
-                            :hasFocus="editorFocus"
-                            @focus="setActiveEditorSection('environment', $event)"
-                            @change="yamlCodeChange"
-                        />
+                        <code-mirror ref="envEditor" v-model="stack.composeENV" :extensions="environmentExtensions" minimal :dark="$root.isDark" tab="true" :disabled="!isEditMode" :hasFocus="editorFocus" @focus="setActiveEditorSection('environment', $event)" @change="yamlCodeChange" />
                     </div>
                 </section>
 
                 <section class="stack-section" aria-labelledby="networks-heading">
                     <h2 id="networks-heading" class="stack-section-heading">Networks</h2>
-
-                    <!-- Volumes -->
-                    <div v-if="false">
-                        <h4 class="mb-3">{{ $tc("volume", 2) }}</h4>
-                        <div class="shadow-box big-padding mb-3">
-                        </div>
-                    </div>
-
+                    <div v-if="false"><h4 class="mb-3">{{ $tc("volume", 2) }}</h4><div class="shadow-box big-padding mb-3"></div></div>
                     <fieldset :disabled="!isEditMode" class="network-fieldset">
-                        <div class="shadow-box big-padding mb-3" :class="{ 'read-only': !isEditMode }">
-                            <NetworkInput />
-                        </div>
+                        <div class="shadow-box big-padding mb-3" :class="{ 'read-only': !isEditMode }"><NetworkInput /></div>
                     </fieldset>
                 </section>
             </div>
 
-            <div v-if="!stack.isManagedByDockge && !processing">
-                {{ $t("stackNotManagedByDockgeMsg") }}
-            </div>
-
-            <!-- Delete Dialog -->
-            <BModal v-model="showDeleteDialog" :cancelTitle="$t('cancel')" :okTitle="$t('deleteStack')" okVariant="danger" @ok="deleteDialog">
-                {{ $t("deleteStackMsg") }}
-            </BModal>
+            <div v-if="!stack.isManagedByDockge && !processing">{{ $t("stackNotManagedByDockgeMsg") }}</div>
+            <BModal v-model="showDeleteDialog" :cancelTitle="$t('cancel')" :okTitle="$t('deleteStack')" okVariant="danger" @ok="deleteDialog">{{ $t("deleteStackMsg") }}</BModal>
         </div>
     </transition>
 </template>
@@ -308,17 +226,8 @@ import { dracula as editorTheme } from "thememirror";
 import { lineNumbers, EditorView } from "@codemirror/view";
 import { lightCodeMirrorTheme } from "../util/codemirror-theme";
 import { parseDocument, Document } from "yaml";
-
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import {
-    COMBINED_TERMINAL_COLS,
-    COMBINED_TERMINAL_ROWS,
-    copyYAMLComments, envsubstYAML,
-    getCombinedTerminalName,
-    getComposeTerminalName,
-    PROGRESS_TERMINAL_ROWS,
-    RUNNING
-} from "../../../common/util-common";
+import { COMBINED_TERMINAL_COLS, COMBINED_TERMINAL_ROWS, copyYAMLComments, envsubstYAML, getCombinedTerminalName, getComposeTerminalName, PROGRESS_TERMINAL_ROWS, RUNNING } from "../../../common/util-common";
 import { BModal } from "bootstrap-vue-next";
 import NetworkInput from "../components/NetworkInput.vue";
 import dotenv from "dotenv";
@@ -333,278 +242,102 @@ services:
       - "8080:80"
 `;
 const envDefault = "# VARIABLE=value #comment";
-
 let yamlErrorTimeout = null;
-
 let serviceStatusTimeout = null;
 let dockerStatsTimeout = null;
 
 export default {
-    components: {
-        NetworkInput,
-        FontAwesomeIcon,
-        CodeMirror,
-        BModal,
-    },
-    beforeRouteUpdate(to, from, next) {
-        this.exitConfirm(next);
-    },
-    beforeRouteLeave(to, from, next) {
-        this.exitConfirm(next);
-    },
+    components: { NetworkInput, FontAwesomeIcon, CodeMirror, BModal },
+    beforeRouteUpdate(to, from, next) { this.exitConfirm(next); },
+    beforeRouteLeave(to, from, next) { this.exitConfirm(next); },
     setup() {
         const editorFocus = ref(false);
-
-        const focusEffectHandler = (state, focusing) => {
-            editorFocus.value = focusing;
-            return null;
-        };
-
-        const extensions = [
-            yaml(),
-            lineNumbers(),
-            EditorView.focusChangeEffect.of(focusEffectHandler)
-        ];
-
-        const extensionsEnv = [
-            python(),
-            lineNumbers(),
-            EditorView.focusChangeEffect.of(focusEffectHandler)
-        ];
-
-        return { extensions,
-            extensionsEnv,
-            editorFocus };
+        const focusEffectHandler = (state, focusing) => { editorFocus.value = focusing; return null; };
+        const extensions = [ yaml(), lineNumbers(), EditorView.focusChangeEffect.of(focusEffectHandler) ];
+        const extensionsEnv = [ python(), lineNumbers(), EditorView.focusChangeEffect.of(focusEffectHandler) ];
+        return { extensions, extensionsEnv, editorFocus };
     },
-    yamlDoc: null,  // For keeping the yaml comments
+    yamlDoc: null,
     data() {
         return {
-            jsonConfig: {},
-            envsubstJSONConfig: {},
-            yamlError: "",
-            processing: true,
-            showProgressTerminal: false,
-            progressTerminalRows: PROGRESS_TERMINAL_ROWS,
-            combinedTerminalRows: COMBINED_TERMINAL_ROWS,
-            combinedTerminalCols: COMBINED_TERMINAL_COLS,
-            stack: {
-
-            },
-            serviceStatusList: {},
-            dockerStats: {},
-            isEditMode: false,
-            submitted: false,
-            showDeleteDialog: false,
-            newContainerName: "",
-            stopServiceStatusTimeout: false,
+            jsonConfig: {}, envsubstJSONConfig: {}, yamlError: "", processing: true,
+            showProgressTerminal: false, progressTerminalRows: PROGRESS_TERMINAL_ROWS,
+            combinedTerminalRows: COMBINED_TERMINAL_ROWS, combinedTerminalCols: COMBINED_TERMINAL_COLS,
+            stack: { composeOverrideYAML: "", composeOverrideFileName: "compose.override.yaml" },
+            serviceStatusList: {}, dockerStats: {}, isEditMode: false, submitted: false,
+            showDeleteDialog: false, newContainerName: "", stopServiceStatusTimeout: false,
             stopDockerStatsTimeout: false,
             composeWrapEnabled: window.matchMedia("(max-width: 767.98px)").matches,
+            overrideWrapEnabled: window.matchMedia("(max-width: 767.98px)").matches,
             environmentWrapEnabled: window.matchMedia("(max-width: 767.98px)").matches,
-            mobileKeyboardOffset: 0,
-            mobileVisualTop: 0,
-            mobileEditorHeight: 0,
-            mobileEditorNeedsAlignment: true,
-            activeEditorSection: "compose",
-            fullscreenEditor: null,
+            mobileKeyboardOffset: 0, mobileVisualTop: 0, mobileEditorHeight: 0,
+            mobileEditorNeedsAlignment: true, activeEditorSection: "compose", fullscreenEditor: null,
         };
     },
     computed: {
         composeExtensions() {
-            const extensions = [
-                ...(this.$root.isDark ? [ editorTheme ] : lightCodeMirrorTheme),
-                ...this.extensions,
-            ];
+            const extensions = [ ...(this.$root.isDark ? [ editorTheme ] : lightCodeMirrorTheme), ...this.extensions ];
             return this.composeWrapEnabled ? [ ...extensions, EditorView.lineWrapping ] : extensions;
         },
-
+        overrideExtensions() {
+            const extensions = [ ...(this.$root.isDark ? [ editorTheme ] : lightCodeMirrorTheme), ...this.extensions ];
+            return this.overrideWrapEnabled ? [ ...extensions, EditorView.lineWrapping ] : extensions;
+        },
         environmentExtensions() {
-            const extensions = [
-                ...(this.$root.isDark ? [ editorTheme ] : lightCodeMirrorTheme),
-                ...this.extensionsEnv,
-            ];
+            const extensions = [ ...(this.$root.isDark ? [ editorTheme ] : lightCodeMirrorTheme), ...this.extensionsEnv ];
             return this.environmentWrapEnabled ? [ ...extensions, EditorView.lineWrapping ] : extensions;
         },
-
-        endpointDisplay() {
-            return this.$root.endpointDisplayFunction(this.endpoint);
-        },
-
+        endpointDisplay() { return this.$root.endpointDisplayFunction(this.endpoint); },
         urls() {
-            if (!this.envsubstJSONConfig["x-dockge"] || !this.envsubstJSONConfig["x-dockge"].urls || !Array.isArray(this.envsubstJSONConfig["x-dockge"].urls)) {
-                return [];
-            }
-
-            let urls = [];
-            for (const url of this.envsubstJSONConfig["x-dockge"].urls) {
+            if (!this.envsubstJSONConfig["x-dockge"] || !this.envsubstJSONConfig["x-dockge"].urls || !Array.isArray(this.envsubstJSONConfig["x-dockge"].urls)) return [];
+            return this.envsubstJSONConfig["x-dockge"].urls.map((url) => {
                 let display;
-                try {
-                    let obj = new URL(url);
-                    let pathname = obj.pathname;
-                    if (pathname === "/") {
-                        pathname = "";
-                    }
-                    display = obj.host + pathname + obj.search;
-                } catch (e) {
-                    display = url;
-                }
-
-                urls.push({
-                    display,
-                    url,
-                });
-            }
-            return urls;
+                try { const obj = new URL(url); const pathname = obj.pathname === "/" ? "" : obj.pathname; display = obj.host + pathname + obj.search; } catch (e) { display = url; }
+                return { display, url };
+            });
         },
-
-        isAdd() {
-            return this.$route.path === "/compose" && !this.submitted;
-        },
-
-        isNewComposeRoute() {
-            return this.$route.path === "/compose";
-        },
-
-        /**
-         * Get the stack from the global stack list, because it may contain more real-time data like status
-         * @return {*}
-         */
-        globalStack() {
-            return this.$root.completeStackList[this.stack.name + "_" + this.endpoint];
-        },
-
-        status() {
-            return this.globalStack?.status;
-        },
-
-        active() {
-            return this.status === RUNNING;
-        },
-
-        mobileViewportStyle() {
-            return {
-                "--mobile-keyboard-offset": `${this.mobileKeyboardOffset}px`,
-                "--mobile-visual-top": `${this.mobileVisualTop}px`,
-                "--mobile-editor-height": `${this.mobileEditorHeight}px`,
-            };
-        },
-
-        mobileKeyboardOpen() {
-            return this.mobileKeyboardOffset > 0;
-        },
-
-        terminalName() {
-            if (!this.stack.name) {
-                return "";
-            }
-            return getComposeTerminalName(this.endpoint, this.stack.name);
-        },
-
-        combinedTerminalName() {
-            if (!this.stack.name) {
-                return "";
-            }
-            return getCombinedTerminalName(this.endpoint, this.stack.name);
-        },
-
-        networks() {
-            return this.jsonConfig.networks;
-        },
-
-        endpoint() {
-            return this.stack.endpoint || this.$route.params.endpoint || "";
-        },
-
-        url() {
-            if (this.stack.endpoint) {
-                return `/compose/${this.stack.name}/${this.stack.endpoint}`;
-            } else {
-                return `/compose/${this.stack.name}`;
-            }
-        },
+        isAdd() { return this.$route.path === "/compose" && !this.submitted; },
+        isNewComposeRoute() { return this.$route.path === "/compose"; },
+        globalStack() { return this.$root.completeStackList[this.stack.name + "_" + this.endpoint]; },
+        status() { return this.globalStack?.status; },
+        active() { return this.status === RUNNING; },
+        mobileViewportStyle() { return { "--mobile-keyboard-offset": `${this.mobileKeyboardOffset}px`, "--mobile-visual-top": `${this.mobileVisualTop}px`, "--mobile-editor-height": `${this.mobileEditorHeight}px` }; },
+        mobileKeyboardOpen() { return this.mobileKeyboardOffset > 0; },
+        terminalName() { return this.stack.name ? getComposeTerminalName(this.endpoint, this.stack.name) : ""; },
+        combinedTerminalName() { return this.stack.name ? getCombinedTerminalName(this.endpoint, this.stack.name) : ""; },
+        networks() { return this.jsonConfig.networks; },
+        endpoint() { return this.stack.endpoint || this.$route.params.endpoint || ""; },
+        url() { return this.stack.endpoint ? `/compose/${this.stack.name}/${this.stack.endpoint}` : `/compose/${this.stack.name}`; },
     },
     watch: {
-        "stack.composeYAML": {
-            handler() {
-                if (this.editorFocus) {
-                    console.debug("yaml code changed");
-                    this.yamlCodeChange();
-                }
-            },
-            deep: true,
-        },
-
-        "stack.composeENV": {
-            handler() {
-                if (this.editorFocus) {
-                    console.debug("env code changed");
-                    this.yamlCodeChange();
-                }
-            },
-            deep: true,
-        },
-
+        "stack.composeYAML": { handler() { if (this.editorFocus) this.yamlCodeChange(); }, deep: true },
+        "stack.composeENV": { handler() { if (this.editorFocus) this.yamlCodeChange(); }, deep: true },
+        "stack.composeOverrideYAML": { handler() { if (this.editorFocus) this.yamlCodeChange(); }, deep: true },
         jsonConfig: {
             handler() {
                 if (!this.editorFocus) {
-                    console.debug("jsonConfig changed");
-
-                    let doc = new Document(this.jsonConfig);
-
-                    // Stick back the yaml comments
-                    if (this.yamlDoc) {
-                        copyYAMLComments(doc, this.yamlDoc);
-                    }
-
+                    const doc = new Document(this.jsonConfig);
+                    if (this.yamlDoc) copyYAMLComments(doc, this.yamlDoc);
                     this.stack.composeYAML = doc.toString();
                     this.yamlDoc = doc;
                 }
-            },
-            deep: true,
+            }, deep: true,
         },
-
-        $route(to, from) {
-
-        }
+        $route(to, from) {},
     },
     mounted() {
         if (this.isAdd) {
-            this.processing = false;
-            this.isEditMode = true;
-
-            let composeYAML;
-            let composeENV;
-
-            if (this.$root.composeTemplate) {
-                composeYAML = this.$root.composeTemplate;
-                this.$root.composeTemplate = "";
-            } else {
-                composeYAML = template;
-            }
-            if (this.$root.envTemplate) {
-                composeENV = this.$root.envTemplate;
-                this.$root.envTemplate = "";
-            } else {
-                composeENV = envDefault;
-            }
-
-            // Default Values
-            this.stack = {
-                name: "",
-                composeYAML,
-                composeENV,
-                isManagedByDockge: true,
-                endpoint: "",
-            };
-
+            this.processing = false; this.isEditMode = true;
+            const composeYAML = this.$root.composeTemplate || template;
+            const composeENV = this.$root.envTemplate || envDefault;
+            this.$root.composeTemplate = ""; this.$root.envTemplate = "";
+            this.stack = { name: "", composeYAML, composeENV, composeOverrideYAML: "", composeOverrideFileName: "compose.override.yaml", isManagedByDockge: true, endpoint: "" };
             this.yamlCodeChange();
-
         } else {
             this.stack.name = this.$route.params.stackName;
             this.loadStack();
         }
-
-        this.requestServiceStatus();
-        this.requestDockerStats();
+        this.requestServiceStatus(); this.requestDockerStats();
         window.visualViewport?.addEventListener("resize", this.updateMobileViewport);
         window.visualViewport?.addEventListener("scroll", this.updateMobileViewport);
         window.addEventListener("orientationchange", this.updateMobileViewport);
@@ -618,799 +351,177 @@ export default {
         document.body.classList.remove("dockge-editor-fullscreen");
     },
     methods: {
+        editorRef(section) {
+            if (section === "compose") return this.$refs.editor;
+            if (section === "override") return this.$refs.overrideEditor;
+            return this.$refs.envEditor;
+        },
         toggleFullscreenEditor(section) {
             this.fullscreenEditor = this.fullscreenEditor === section ? null : section;
             document.body.classList.toggle("dockge-editor-fullscreen", Boolean(this.fullscreenEditor));
-            this.activeEditorSection = section;
-            this.mobileEditorNeedsAlignment = true;
-            this.$nextTick(() => {
-                const editorRef = section === "compose" ? this.$refs.editor : this.$refs.envEditor;
-                editorRef?.view?.requestMeasure();
-                editorRef?.view?.focus();
-            });
+            this.activeEditorSection = section; this.mobileEditorNeedsAlignment = true;
+            this.$nextTick(() => { const ref = this.editorRef(section); ref?.view?.requestMeasure(); ref?.view?.focus(); });
         },
-
-        handleFullscreenEscape(event) {
-            if (event.key === "Escape" && this.fullscreenEditor) {
-                this.fullscreenEditor = null;
-                document.body.classList.remove("dockge-editor-fullscreen");
-            }
-        },
-
+        handleFullscreenEscape(event) { if (event.key === "Escape" && this.fullscreenEditor) { this.fullscreenEditor = null; document.body.classList.remove("dockge-editor-fullscreen"); } },
         updateMobileViewport() {
             if (!window.matchMedia("(max-width: 767.98px)").matches || !window.visualViewport) {
-                this.mobileKeyboardOffset = 0;
-                this.mobileVisualTop = 0;
-                this.mobileEditorHeight = 0;
-                this.mobileEditorNeedsAlignment = true;
-                return;
+                this.mobileKeyboardOffset = 0; this.mobileVisualTop = 0; this.mobileEditorHeight = 0; this.mobileEditorNeedsAlignment = true; return;
             }
-
             const viewport = window.visualViewport;
             const activeEditor = document.activeElement?.closest?.(".cm-editor");
             const keyboardOffset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
             this.mobileKeyboardOffset = keyboardOffset > 80 && activeEditor ? keyboardOffset : 0;
             this.mobileVisualTop = this.mobileKeyboardOffset ? viewport.offsetTop : 0;
-
             if (this.mobileKeyboardOffset) {
                 const actionBar = this.$el.querySelector(".mobile-editor-actions");
                 const activeSection = this.$refs[`${this.activeEditorSection}Section`];
                 const heading = activeSection?.querySelector(".editor-heading");
                 const filename = activeSection?.querySelector(".stack-section-filename");
                 const reservedHeight = (heading?.offsetHeight || 52) + (actionBar?.offsetHeight || 60) + (filename?.offsetHeight || 24) + 40;
-                const availableEditorHeight = viewport.height - reservedHeight;
-                this.mobileEditorHeight = Math.min(280, Math.max(200, availableEditorHeight));
-
+                this.mobileEditorHeight = Math.min(280, Math.max(200, viewport.height - reservedHeight));
                 this.$nextTick(() => requestAnimationFrame(() => {
-                    const editorRef = activeEditor === this.$refs.editor?.view?.dom
-                        ? this.$refs.editor
-                        : this.$refs.envEditor;
-                    const cursorPosition = editorRef?.view?.state.selection.main.head;
-                    editorRef?.view?.requestMeasure();
-                    if (cursorPosition !== undefined) {
-                        editorRef.view.dispatch({
-                            effects: EditorView.scrollIntoView(cursorPosition, {
-                                y: "nearest",
-                                yMargin: 12
-                            })
-                        });
-                    }
-
-                    const sectionRect = activeSection?.getBoundingClientRect();
-                    const visibleTop = viewport.offsetTop + 8;
-                    if (this.mobileEditorNeedsAlignment && sectionRect && Math.abs(sectionRect.top - visibleTop) > 8) {
-                        window.scrollBy({
-                            top: sectionRect.top - visibleTop,
-                            behavior: "auto"
-                        });
-                    }
+                    const ref = this.editorRef(this.activeEditorSection);
+                    const pos = ref?.view?.state.selection.main.head;
+                    ref?.view?.requestMeasure();
+                    if (pos !== undefined) ref.view.dispatch({ effects: EditorView.scrollIntoView(pos, { y: "nearest", yMargin: 12 }) });
+                    const rect = activeSection?.getBoundingClientRect(); const visibleTop = viewport.offsetTop + 8;
+                    if (this.mobileEditorNeedsAlignment && rect && Math.abs(rect.top - visibleTop) > 8) window.scrollBy({ top: rect.top - visibleTop, behavior: "auto" });
                     this.mobileEditorNeedsAlignment = false;
-
-                    const cursorRect = cursorPosition === undefined
-                        ? activeEditor.getBoundingClientRect()
-                        : editorRef.view.coordsAtPos(cursorPosition);
-                    const visibleBottom = viewport.offsetTop + viewport.height - 8;
-                    if (cursorRect?.bottom > visibleBottom) {
-                        window.scrollBy({
-                            top: cursorRect.bottom - visibleBottom,
-                            behavior: "auto"
-                        });
-                    }
                 }));
-            } else {
-                this.mobileEditorHeight = 0;
-                this.mobileEditorNeedsAlignment = true;
-            }
+            } else { this.mobileEditorHeight = 0; this.mobileEditorNeedsAlignment = true; }
         },
-
-        setActiveEditorSection(section, focused) {
-            if (focused && this.activeEditorSection !== section) {
-                this.activeEditorSection = section;
-                this.mobileEditorNeedsAlignment = true;
-            }
-        },
-
-        scrollToStacks() {
-            document.getElementById("stack-list-start")?.scrollIntoView({ behavior: "smooth",
-                block: "start" });
-        },
-
-        startServiceStatusTimeout() {
-            clearTimeout(serviceStatusTimeout);
-            serviceStatusTimeout = setTimeout(async () => {
-                this.requestServiceStatus();
-            }, 5000);
-        },
-
-        startDockerStatsTimeout() {
-            clearTimeout(dockerStatsTimeout);
-            dockerStatsTimeout = setTimeout(async () => {
-                this.requestDockerStats();
-            }, 5000);
-        },
-
+        setActiveEditorSection(section, focused) { if (focused && this.activeEditorSection !== section) { this.activeEditorSection = section; this.mobileEditorNeedsAlignment = true; } },
+        scrollToStacks() { document.getElementById("stack-list-start")?.scrollIntoView({ behavior: "smooth", block: "start" }); },
+        startServiceStatusTimeout() { clearTimeout(serviceStatusTimeout); serviceStatusTimeout = setTimeout(async () => this.requestServiceStatus(), 5000); },
+        startDockerStatsTimeout() { clearTimeout(dockerStatsTimeout); dockerStatsTimeout = setTimeout(async () => this.requestDockerStats(), 5000); },
         requestServiceStatus() {
-            // Do not request if it is add mode
-            if (this.isAdd) {
-                return;
-            }
-
-            this.$root.emitAgent(this.endpoint, "serviceStatusList", this.stack.name, (res) => {
-                if (res.ok) {
-                    this.serviceStatusList = res.serviceStatusList;
-                }
-                if (!this.stopServiceStatusTimeout) {
-                    this.startServiceStatusTimeout();
-                }
-            });
+            if (this.isAdd) return;
+            this.$root.emitAgent(this.endpoint, "serviceStatusList", this.stack.name, (res) => { if (res.ok) this.serviceStatusList = res.serviceStatusList; if (!this.stopServiceStatusTimeout) this.startServiceStatusTimeout(); });
         },
-
-        requestDockerStats() {
-            this.$root.emitAgent(this.endpoint, "dockerStats", (res) => {
-                if (res.ok) {
-                    this.dockerStats = res.dockerStats;
-                }
-                if (!this.stopDockerStatsTimeout) {
-                    this.startDockerStatsTimeout();
-                }
-            });
-        },
-
-        exitConfirm(next) {
-            if (this.isEditMode) {
-                if (confirm(this.$t("confirmLeaveStack"))) {
-                    this.exitAction();
-                    next();
-                } else {
-                    next(false);
-                }
-            } else {
-                this.exitAction();
-                next();
-            }
-        },
-
+        requestDockerStats() { this.$root.emitAgent(this.endpoint, "dockerStats", (res) => { if (res.ok) this.dockerStats = res.dockerStats; if (!this.stopDockerStatsTimeout) this.startDockerStatsTimeout(); }); },
+        exitConfirm(next) { if (this.isEditMode) { if (confirm(this.$t("confirmLeaveStack"))) { this.exitAction(); next(); } else next(false); } else { this.exitAction(); next(); } },
         exitAction() {
-            console.log("exitAction");
-            this.stopServiceStatusTimeout = true;
-            this.stopDockerStatsTimeout = true;
-            clearTimeout(serviceStatusTimeout);
-            clearTimeout(dockerStatsTimeout);
-            this.fullscreenEditor = null;
-            document.body.classList.remove("dockge-editor-fullscreen");
-
-            // Leave Combined Terminal
-            console.debug("leaveCombinedTerminal", this.endpoint, this.stack.name);
+            this.stopServiceStatusTimeout = true; this.stopDockerStatsTimeout = true;
+            clearTimeout(serviceStatusTimeout); clearTimeout(dockerStatsTimeout);
+            this.fullscreenEditor = null; document.body.classList.remove("dockge-editor-fullscreen");
             this.$root.emitAgent(this.endpoint, "leaveCombinedTerminal", this.stack.name, () => {});
         },
-
-        bindTerminal() {
-            this.$refs.progressTerminal?.bind(this.endpoint, this.terminalName);
-        },
-
+        bindTerminal() { this.$refs.progressTerminal?.bind(this.endpoint, this.terminalName); },
         loadStack() {
             this.processing = true;
             this.$root.emitAgent(this.endpoint, "getStack", this.stack.name, (res) => {
-                if (res.ok) {
-                    this.stack = res.stack;
-                    this.yamlCodeChange();
-                    this.processing = false;
-                    this.bindTerminal();
-                } else {
-                    this.$root.toastRes(res);
-                }
+                if (res.ok) { this.stack = res.stack; this.yamlCodeChange(); this.processing = false; this.bindTerminal(); } else this.$root.toastRes(res);
             });
         },
-
         deployStack() {
             this.processing = true;
-
-            if (!this.jsonConfig.services) {
-                this.$root.toastError("No services found in compose.yaml");
-                this.processing = false;
-                return;
-            }
-
-            // Check if services is object
-            if (typeof this.jsonConfig.services !== "object") {
-                this.$root.toastError("Services must be an object");
-                this.processing = false;
-                return;
-            }
-
-            let serviceNameList = Object.keys(this.jsonConfig.services);
-
-            // Set the stack name if empty, use the first container name
+            if (!this.jsonConfig.services) { this.$root.toastError("No services found in compose.yaml"); this.processing = false; return; }
+            if (typeof this.jsonConfig.services !== "object") { this.$root.toastError("Services must be an object"); this.processing = false; return; }
+            const serviceNameList = Object.keys(this.jsonConfig.services);
             if (!this.stack.name && serviceNameList.length > 0) {
-                let serviceName = serviceNameList[0];
-                let service = this.jsonConfig.services[serviceName];
-
-                if (service && service.container_name) {
-                    this.stack.name = service.container_name;
-                } else {
-                    this.stack.name = serviceName;
-                }
+                const serviceName = serviceNameList[0]; const service = this.jsonConfig.services[serviceName];
+                this.stack.name = service?.container_name || serviceName;
             }
-
             this.bindTerminal();
-
-            this.$root.emitAgent(this.stack.endpoint, "deployStack", this.stack.name, this.stack.composeYAML, this.stack.composeENV, this.isAdd, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-
-                if (res.ok) {
-                    this.isEditMode = false;
-                    this.$router.push(this.url);
-                }
+            this.$root.emitAgent(this.stack.endpoint, "deployStack", this.stack.name, this.stack.composeYAML, this.stack.composeENV, this.stack.composeOverrideYAML || "", this.isAdd, (res) => {
+                this.processing = false; this.$root.toastRes(res); if (res.ok) { this.isEditMode = false; this.$router.push(this.url); }
             });
         },
-
         saveStack() {
             this.processing = true;
-
-            this.$root.emitAgent(this.stack.endpoint, "saveStack", this.stack.name, this.stack.composeYAML, this.stack.composeENV, this.isAdd, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-
-                if (res.ok) {
-                    this.isEditMode = false;
-                    this.$router.push(this.url);
-                }
+            this.$root.emitAgent(this.stack.endpoint, "saveStack", this.stack.name, this.stack.composeYAML, this.stack.composeENV, this.stack.composeOverrideYAML || "", this.isAdd, (res) => {
+                this.processing = false; this.$root.toastRes(res); if (res.ok) { this.isEditMode = false; this.$router.push(this.url); }
             });
         },
-
-        startStack() {
-            this.processing = true;
-
-            this.$root.emitAgent(this.endpoint, "startStack", this.stack.name, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-            });
+        startStack() { this.processing = true; this.$root.emitAgent(this.endpoint, "startStack", this.stack.name, (res) => { this.processing = false; this.$root.toastRes(res); }); },
+        stopStack() { this.processing = true; this.$root.emitAgent(this.endpoint, "stopStack", this.stack.name, (res) => { this.processing = false; this.$root.toastRes(res); }); },
+        downStack() { this.processing = true; this.$root.emitAgent(this.endpoint, "downStack", this.stack.name, (res) => { this.processing = false; this.$root.toastRes(res); }); },
+        restartStack() { this.processing = true; this.$root.emitAgent(this.endpoint, "restartStack", this.stack.name, (res) => { this.processing = false; this.$root.toastRes(res); }); },
+        updateStack() { this.processing = true; this.$root.emitAgent(this.endpoint, "updateStack", this.stack.name, (res) => { this.processing = false; this.$root.toastRes(res); }); },
+        deleteDialog() { this.$root.emitAgent(this.endpoint, "deleteStack", this.stack.name, (res) => { this.$root.toastRes(res); if (res.ok) this.$router.push("/"); }); },
+        discardStack() { this.loadStack(); this.isEditMode = false; },
+        cancelStack() { this.$router.push("/"); },
+        yamlToJSON(content) {
+            const doc = parseDocument(content); if (doc.errors.length > 0) throw doc.errors[0];
+            const config = doc.toJS() ?? {}; if (!config.services) config.services = {};
+            if (Array.isArray(config.services) || typeof config.services !== "object") throw new Error("Services must be an object");
+            return { config, doc };
         },
-
-        stopStack() {
-            this.processing = true;
-
-            this.$root.emitAgent(this.endpoint, "stopStack", this.stack.name, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-            });
-        },
-
-        downStack() {
-            this.processing = true;
-
-            this.$root.emitAgent(this.endpoint, "downStack", this.stack.name, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-            });
-        },
-
-        restartStack() {
-            this.processing = true;
-
-            this.$root.emitAgent(this.endpoint, "restartStack", this.stack.name, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-            });
-        },
-
-        updateStack() {
-            this.processing = true;
-
-            this.$root.emitAgent(this.endpoint, "updateStack", this.stack.name, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-            });
-        },
-
-        deleteDialog() {
-            this.$root.emitAgent(this.endpoint, "deleteStack", this.stack.name, (res) => {
-                this.$root.toastRes(res);
-                if (res.ok) {
-                    this.$router.push("/");
-                }
-            });
-        },
-
-        discardStack() {
-            this.loadStack();
-            this.isEditMode = false;
-        },
-
-        cancelStack() {
-            this.$router.push("/");
-        },
-
-        yamlToJSON(yaml) {
-            let doc = parseDocument(yaml);
-            if (doc.errors.length > 0) {
-                throw doc.errors[0];
-            }
-
-            const config = doc.toJS() ?? {};
-
-            // Check data types
-            // "services" must be an object
-            if (!config.services) {
-                config.services = {};
-            }
-
-            if (Array.isArray(config.services) || typeof config.services !== "object") {
-                throw new Error("Services must be an object");
-            }
-
-            return {
-                config,
-                doc,
-            };
-        },
-
         yamlCodeChange() {
             try {
-                let { config, doc } = this.yamlToJSON(this.stack.composeYAML);
-
-                this.yamlDoc = doc;
-                this.jsonConfig = config;
-
-                let env = dotenv.parse(this.stack.composeENV);
-                let envYAML = envsubstYAML(this.stack.composeYAML, env);
+                const { config, doc } = this.yamlToJSON(this.stack.composeYAML);
+                this.yamlDoc = doc; this.jsonConfig = config;
+                if (this.stack.composeOverrideYAML?.trim()) parseDocument(this.stack.composeOverrideYAML);
+                const env = dotenv.parse(this.stack.composeENV); const envYAML = envsubstYAML(this.stack.composeYAML, env);
                 this.envsubstJSONConfig = this.yamlToJSON(envYAML).config;
-
-                clearTimeout(yamlErrorTimeout);
-                this.yamlError = "";
+                clearTimeout(yamlErrorTimeout); this.yamlError = "";
             } catch (e) {
                 clearTimeout(yamlErrorTimeout);
-
-                if (this.yamlError) {
-                    this.yamlError = e.message;
-
-                } else {
-                    yamlErrorTimeout = setTimeout(() => {
-                        this.yamlError = e.message;
-                    }, 3000);
-                }
+                if (this.yamlError) this.yamlError = e.message; else yamlErrorTimeout = setTimeout(() => { this.yamlError = e.message; }, 3000);
             }
         },
-
-        enableEditMode() {
-            this.isEditMode = true;
-        },
-
-        checkYAML() {
-
-        },
-
+        enableEditMode() { this.isEditMode = true; },
+        checkYAML() {},
         addContainer() {
             this.checkYAML();
-
-            if (this.jsonConfig.services[this.newContainerName]) {
-                this.$root.toastError("Container name already exists");
-                return;
-            }
-
-            if (!this.newContainerName) {
-                this.$root.toastError("Container name cannot be empty");
-                return;
-            }
-
-            this.jsonConfig.services[this.newContainerName] = {
-                restart: "unless-stopped",
-            };
-            this.newContainerName = "";
-            let element = this.$refs.containerList.lastElementChild;
-            element.scrollIntoView({
-                block: "start",
-                behavior: "smooth"
-            });
+            if (this.jsonConfig.services[this.newContainerName]) { this.$root.toastError("Container name already exists"); return; }
+            if (!this.newContainerName) { this.$root.toastError("Container name cannot be empty"); return; }
+            this.jsonConfig.services[this.newContainerName] = { restart: "unless-stopped" }; this.newContainerName = "";
+            this.$refs.containerList.lastElementChild.scrollIntoView({ block: "start", behavior: "smooth" });
         },
-
-        stackNameToLowercase() {
-            this.stack.name = this.stack?.name?.toLowerCase();
-        },
-
-        startService(serviceName) {
-            this.processing = true;
-
-            this.$root.emitAgent(this.endpoint, "startService", this.stack.name, serviceName, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-
-                if (res.ok) {
-                    this.requestServiceStatus(); // Refresh service status
-                }
-            });
-        },
-
-        stopService(serviceName) {
-            this.processing = true;
-
-            this.$root.emitAgent(this.endpoint, "stopService", this.stack.name, serviceName, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-
-                if (res.ok) {
-                    this.requestServiceStatus(); // Refresh service status
-                }
-            });
-        },
-
-        restartService(serviceName) {
-            this.processing = true;
-
-            this.$root.emitAgent(this.endpoint, "restartService", this.stack.name, serviceName, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
-
-                if (res.ok) {
-                    this.requestServiceStatus(); // Refresh service status
-                }
-            });
-        },
+        stackNameToLowercase() { this.stack.name = this.stack?.name?.toLowerCase(); },
+        startService(serviceName) { this.processing = true; this.$root.emitAgent(this.endpoint, "startService", this.stack.name, serviceName, (res) => { this.processing = false; this.$root.toastRes(res); if (res.ok) this.requestServiceStatus(); }); },
+        stopService(serviceName) { this.processing = true; this.$root.emitAgent(this.endpoint, "stopService", this.stack.name, serviceName, (res) => { this.processing = false; this.$root.toastRes(res); if (res.ok) this.requestServiceStatus(); }); },
+        restartService(serviceName) { this.processing = true; this.$root.emitAgent(this.endpoint, "restartService", this.stack.name, serviceName, (res) => { this.processing = false; this.$root.toastRes(res); if (res.ok) this.requestServiceStatus(); }); },
     }
 };
 </script>
 
 <style scoped lang="scss">
 @import "../styles/vars.scss";
-
-.terminal {
-    height: 200px;
-}
-
-@media (min-width: 768px) {
-    .combined-terminal {
-        height: clamp(280px, 35vh, 340px);
-    }
-}
-
-.stack-workspace {
-    width: 100%;
-    min-width: 0;
-}
-
-.runtime-row {
-    min-width: 0;
-}
-
-@media (min-width: 1200px) {
-    .runtime-row {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-        gap: 1.5rem;
-        align-items: start;
-    }
-}
-
-.stack-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    min-width: 0;
-}
-
-.stack-primary-actions {
-    flex-wrap: wrap;
-    max-width: 100%;
-}
-
-.stack-section {
-    width: 100%;
-    min-width: 0;
-    padding-top: 0.25rem;
-    margin-bottom: 2.5rem;
-}
-
-.stack-section-heading {
-    padding-bottom: 0.65rem;
-    margin-bottom: 1.25rem;
-    border-bottom: 1px solid #ced4da;
-    font-size: 1.35rem;
-
-    .dark & {
-        border-bottom-color: rgba(127, 127, 127, 0.25);
-    }
-}
-
-.editor-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-
-    h2 {
-        margin: 0;
-        font-size: inherit;
-    }
-}
-
-.editor-heading-actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 0.5rem;
-}
-
-.wrap-toggle,
-.fullscreen-toggle {
-    flex: 0 0 auto;
-}
-
-.wrap-toggle {
-    min-width: 78px;
-}
-
-.fullscreen-toggle {
-    min-width: 108px;
-}
-
-.back-to-stacks {
-    display: none;
-}
-
-.stack-section-filename {
-    font-size: 1rem;
-    color: #495057;
-
-    .dark & {
-        color: $dark-font-color3;
-    }
-}
-
-.network-fieldset {
-    min-width: 0;
-    padding: 0;
-    margin: 0;
-    border: 0;
-
-    .read-only {
-        pointer-events: none;
-    }
-}
-
-.editor-box {
-    width: 100%;
-    min-width: 0;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 14px;
-}
-
-.editor-fullscreen-section {
-    position: fixed;
-    inset: 0;
-    z-index: 2050;
-    display: flex;
-    flex-direction: column;
-    width: 100vw;
-    height: 100dvh;
-    margin: 0;
-    padding: 1rem;
-    overflow: hidden;
-    background: #f8f9fa;
-
-    .dark & {
-        background: $dark-bg;
-    }
-
-    .editor-heading {
-        flex: 0 0 auto;
-        margin-bottom: 0.75rem;
-    }
-
-    .stack-section-filename {
-        flex: 0 0 auto;
-        margin-bottom: 0.75rem !important;
-    }
-
-    .mobile-editor-actions-slot {
-        flex: 0 0 auto;
-    }
-
-    .editor-box {
-        flex: 1 1 auto;
-        min-height: 0;
-        margin-bottom: 0 !important;
-        overflow: hidden;
-    }
-
-    :deep(.vue-codemirror),
-    :deep(.cm-editor),
-    :deep(.cm-scroller) {
-        height: 100%;
-        min-height: 0;
-    }
-}
-
-.mobile-editor-actions-slot {
-    display: none;
-}
-
-.agent-name {
-    font-size: 13px;
-    color: #495057;
-
-    .dark & {
-        color: $dark-font-color3;
-    }
-}
-
+.terminal { height: 200px; }
+@media (min-width: 768px) { .combined-terminal { height: clamp(280px, 35vh, 340px); } }
+.stack-workspace { width: 100%; min-width: 0; }
+.runtime-row { min-width: 0; }
+@media (min-width: 1200px) { .runtime-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 1.5rem; align-items: start; } }
+.stack-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; min-width: 0; }
+.stack-primary-actions { flex-wrap: wrap; max-width: 100%; }
+.stack-section { width: 100%; min-width: 0; padding-top: 0.25rem; margin-bottom: 2.5rem; }
+.stack-section-heading { padding-bottom: 0.65rem; margin-bottom: 1.25rem; border-bottom: 1px solid #ced4da; font-size: 1.35rem; .dark & { border-bottom-color: rgba(127,127,127,.25); } }
+.editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; h2 { margin: 0; font-size: inherit; } }
+.editor-heading-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+.wrap-toggle,.fullscreen-toggle { flex: 0 0 auto; }
+.wrap-toggle { min-width: 78px; }
+.fullscreen-toggle { min-width: 108px; }
+.back-to-stacks { display: none; }
+.stack-section-filename { font-size: 1rem; color: #495057; .dark & { color: $dark-font-color3; } }
+.network-fieldset { min-width: 0; padding: 0; margin: 0; border: 0; .read-only { pointer-events: none; } }
+.editor-box { width: 100%; min-width: 0; font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+.editor-fullscreen-section { position: fixed; inset: 0; z-index: 2050; display: flex; flex-direction: column; width: 100vw; height: 100dvh; margin: 0; padding: 1rem; overflow: hidden; background: #f8f9fa; .dark & { background: $dark-bg; } .editor-heading { flex: 0 0 auto; margin-bottom: .75rem; } .stack-section-filename { flex: 0 0 auto; margin-bottom: .75rem !important; } .mobile-editor-actions-slot { flex: 0 0 auto; } .editor-box { flex: 1 1 auto; min-height: 0; margin-bottom: 0 !important; overflow: hidden; } :deep(.vue-codemirror), :deep(.cm-editor), :deep(.cm-scroller) { height: 100%; min-height: 0; } }
+.mobile-editor-actions-slot { display: none; }
+.agent-name { font-size: 13px; color: #495057; .dark & { color: $dark-font-color3; } }
 @media (max-width: 767.98px) {
-    .back-to-stacks {
-        display: inline-flex;
-        align-items: center;
-        min-height: 40px;
-        margin: 0 0 0.25rem;
-        padding: 0.25rem 0;
-        font-size: 0.9rem;
-        text-decoration: none;
-    }
-
-    .editor-heading {
-        gap: 0.5rem;
-    }
-
-    .editor-heading-actions {
-        width: 100%;
-        justify-content: stretch;
-    }
-
-    .wrap-toggle,
-    .fullscreen-toggle {
-        min-height: 40px;
-    }
-
-    .editor-heading-actions > .btn {
-        flex: 1 1 0;
-        min-width: 0;
-    }
-
-    .stack-title {
-        max-width: 100%;
-        overflow-wrap: anywhere;
-        font-size: clamp(1.55rem, 8vw, 2rem);
-    }
-
-    .stack-actions.mobile-edit-actions {
-        display: none;
-    }
-
-    .stack-actions:not(.mobile-edit-actions) {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 0.5rem;
-        width: 100%;
-
-        .stack-primary-actions {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0.5rem;
-            width: 100%;
-            margin-right: 0 !important;
-
-            > * {
-                width: 100%;
-                min-width: 0;
-                min-height: 44px;
-                margin-left: 0 !important;
-                border-radius: 0.5rem !important;
-            }
-
-            > :last-child:nth-child(odd) {
-                grid-column: 1 / -1;
-            }
-
-            :deep(.edit-more > .btn) {
-                width: 100%;
-                min-height: 44px;
-                border-radius: 0.5rem !important;
-            }
-        }
-
-        .stack-delete-action {
-            width: 100%;
-            min-height: 44px;
-            border-radius: 0.5rem;
-        }
-    }
-
-    .mobile-editor-actions-slot {
-        display: block;
-        min-width: 0;
-    }
-
-    .mobile-editor-actions {
-        display: flex;
-        position: sticky;
-        top: calc(var(--mobile-visual-top, 0px) + 8px);
-        z-index: 10;
-        gap: 0.5rem;
-        width: 100%;
-        min-width: 0;
-        margin: 0 0 0.75rem;
-        padding: 0.4rem;
-        border: 1px solid rgba(127, 127, 127, 0.2);
-        border-radius: 0.5rem;
-        background: rgba(255, 255, 255, 0.96);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-
-        .dark & {
-            background: rgba($dark-bg2, 0.96);
-        }
-
-        > .btn {
-            flex: 1 1 0;
-            min-width: 0;
-            min-height: 44px;
-            padding-right: 0.5rem;
-            padding-left: 0.5rem;
-        }
-    }
-
-    .editor-fullscreen-section {
-        padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
-    }
-
-    .editor-fullscreen-section .editor-heading {
-        align-items: stretch;
-        flex-direction: column;
-    }
-
-    .editor-fullscreen-section .mobile-editor-actions {
-        position: static;
-    }
-
-    .stack-section {
-        margin-bottom: 2rem;
-    }
-
-    .terminal {
-        width: 100%;
-        max-width: 100%;
-        height: clamp(240px, 38vh, 280px);
-        overflow: hidden;
-        touch-action: pan-y;
-    }
-
-    .editor-box {
-        max-width: 100%;
-        overflow: hidden;
-        font-size: 16px;
-    }
-
-    .editor-box :deep(.cm-editor),
-    .editor-box :deep(.cm-content) {
-        min-width: 0;
-        font-size: 16px;
-    }
-
-    .editor-box :deep(.cm-scroller) {
-        min-width: 0;
-        max-width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .keyboard-active-editor-box:not(.fullscreen-editor-box),
-    .keyboard-active-editor-box:not(.fullscreen-editor-box) :deep(.vue-codemirror),
-    .keyboard-active-editor-box:not(.fullscreen-editor-box) :deep(.cm-editor),
-    .keyboard-active-editor-box:not(.fullscreen-editor-box) :deep(.cm-scroller) {
-        height: var(--mobile-editor-height);
-        min-height: var(--mobile-editor-height);
-    }
-
-    .shadow-box.big-padding {
-        padding: 1rem;
-    }
-
-    .input-group {
-        min-width: 0;
-        flex-wrap: wrap;
-    }
-
-    .form-control,
-    .form-select {
-        min-width: 0;
-        font-size: 16px;
-    }
+    .back-to-stacks { display: inline-flex; align-items: center; min-height: 40px; margin: 0 0 .25rem; padding: .25rem 0; font-size: .9rem; text-decoration: none; }
+    .editor-heading { gap: .5rem; }
+    .editor-heading-actions { width: 100%; justify-content: stretch; }
+    .wrap-toggle,.fullscreen-toggle { min-height: 40px; }
+    .editor-heading-actions > .btn { flex: 1 1 0; min-width: 0; }
+    .stack-title { max-width: 100%; overflow-wrap: anywhere; font-size: clamp(1.55rem,8vw,2rem); }
+    .stack-actions.mobile-edit-actions { display: none; }
+    .stack-actions:not(.mobile-edit-actions) { display: grid; grid-template-columns: minmax(0,1fr); gap: .5rem; width: 100%; .stack-primary-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .5rem; width: 100%; margin-right: 0 !important; > * { width: 100%; min-width: 0; min-height: 44px; margin-left: 0 !important; border-radius: .5rem !important; } > :last-child:nth-child(odd) { grid-column: 1/-1; } :deep(.edit-more > .btn) { width:100%; min-height:44px; border-radius:.5rem !important; } } .stack-delete-action { width:100%; min-height:44px; border-radius:.5rem; } }
+    .mobile-editor-actions-slot { display: block; min-width: 0; }
+    .mobile-editor-actions { display:flex; position:sticky; top:calc(var(--mobile-visual-top,0px) + 8px); z-index:10; gap:.5rem; width:100%; min-width:0; margin:0 0 .75rem; padding:.4rem; border:1px solid rgba(127,127,127,.2); border-radius:.5rem; background:rgba(255,255,255,.96); box-shadow:0 2px 8px rgba(0,0,0,.06); .dark & { background:rgba($dark-bg2,.96); } > .btn { flex:1 1 0; min-width:0; min-height:44px; padding-right:.5rem; padding-left:.5rem; } }
+    .editor-fullscreen-section { padding:max(.75rem,env(safe-area-inset-top)) max(.75rem,env(safe-area-inset-right)) max(.75rem,env(safe-area-inset-bottom)) max(.75rem,env(safe-area-inset-left)); }
+    .editor-fullscreen-section .editor-heading { align-items:stretch; flex-direction:column; }
+    .editor-fullscreen-section .mobile-editor-actions { position:static; }
+    .stack-section { margin-bottom:2rem; }
+    .terminal { width:100%; max-width:100%; height:clamp(240px,38vh,280px); overflow:hidden; touch-action:pan-y; }
+    .editor-box { max-width:100%; overflow:hidden; font-size:16px; }
+    .editor-box :deep(.cm-editor), .editor-box :deep(.cm-content) { min-width:0; font-size:16px; }
+    .editor-box :deep(.cm-scroller) { min-width:0; max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .keyboard-active-editor-box:not(.fullscreen-editor-box), .keyboard-active-editor-box:not(.fullscreen-editor-box) :deep(.vue-codemirror), .keyboard-active-editor-box:not(.fullscreen-editor-box) :deep(.cm-editor), .keyboard-active-editor-box:not(.fullscreen-editor-box) :deep(.cm-scroller) { height:var(--mobile-editor-height); min-height:var(--mobile-editor-height); }
+    .shadow-box.big-padding { padding:1rem; }
+    .input-group { min-width:0; flex-wrap:wrap; }
+    .form-control,.form-select { min-width:0; font-size:16px; }
 }
 </style>
