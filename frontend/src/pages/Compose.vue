@@ -88,6 +88,14 @@
                         <div v-for="revision in historyRevisions" :key="revision.id" class="history-row">
                             <div class="history-meta">
                                 <strong>{{ formatRevisionDate(revision.createdAt) }}</strong>
+                                <div v-if="revision.changes" class="history-changes" aria-label="Changes after this snapshot">
+                                    <span v-for="item in historyChangeItems(revision.changes)" :key="item.label" class="history-change">
+                                        <span class="history-change-label">{{ item.label }}</span>
+                                        <span class="history-addition">+{{ item.counts.additions }}</span>
+                                        <span class="history-deletion">-{{ item.counts.deletions }}</span>
+                                    </span>
+                                    <span v-if="!hasHistoryChanges(revision.changes)" class="text-muted">No textual changes</span>
+                                </div>
                             </div>
                             <div class="history-actions">
                                 <button class="btn btn-sm btn-normal" :disabled="processing" @click="previewRevision(revision.id)">Preview</button>
@@ -826,6 +834,18 @@ export default {
             });
         },
 
+        historyChangeItems(changes) {
+            return [
+                { label: "Compose", counts: changes.compose },
+                { label: ".env", counts: changes.env },
+                { label: "Override", counts: changes.override },
+            ];
+        },
+
+        hasHistoryChanges(changes) {
+            return this.historyChangeItems(changes).some(({ counts }) => counts.additions > 0 || counts.deletions > 0);
+        },
+
         previewRevision(revisionId) {
             this.processing = true;
             this.$root.emitAgent(this.endpoint, "getConfigRevision", this.stack.name, revisionId, (res) => {
@@ -1549,6 +1569,46 @@ export default {
     display: flex;
     flex-direction: column;
     min-width: 0;
+}
+
+.history-changes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.75rem;
+    margin-top: 0.35rem;
+    font-size: 0.82rem;
+}
+
+.history-change {
+    display: inline-flex;
+    gap: 0.3rem;
+    white-space: nowrap;
+}
+
+.history-change-label {
+    color: #6c757d;
+}
+
+.history-addition {
+    color: #198754;
+}
+
+.history-deletion {
+    color: #b02a37;
+}
+
+.dark {
+    .history-change-label {
+        color: $dark-font-color3;
+    }
+
+    .history-addition {
+        color: #75b798;
+    }
+
+    .history-deletion {
+        color: #ea868f;
+    }
 }
 
 .history-actions {
