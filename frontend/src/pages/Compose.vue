@@ -45,6 +45,11 @@
                         {{ $t("updateStack") }}
                     </button>
 
+                    <button v-if="!isEditMode && !isAdd" class="btn btn-normal" :disabled="processing || checkingImages" @click="checkImages">
+                        <font-awesome-icon icon="arrows-rotate" class="me-1" />
+                        {{ checkingImages ? "Checking…" : "Check images" }}
+                    </button>
+
                     <button v-if="!isEditMode && active" class="btn btn-normal" :disabled="processing" @click="stopStack">
                         <font-awesome-icon icon="stop" class="me-1" />
                         {{ $t("stopStack") }}
@@ -152,6 +157,7 @@
                                 :is-edit-mode="isEditMode"
                                 :first="name === Object.keys(jsonConfig.services)[0]"
                                 :serviceStatus="serviceStatusList[name]"
+                                :image-update-status="imageUpdateStatus[name]"
                                 :dockerStats="dockerStats"
                                 @start-service="startService"
                                 @stop-service="stopService"
@@ -463,6 +469,8 @@ export default {
                 composeOverrideFileName: "compose.override.yaml",
             },
             serviceStatusList: {},
+            imageUpdateStatus: {},
+            checkingImages: false,
             dockerStats: {},
             isEditMode: false,
             submitted: false,
@@ -960,6 +968,7 @@ export default {
                     this.yamlCodeChange();
                     this.processing = false;
                     this.bindTerminal();
+                    this.requestImageUpdateStatus();
                 } else {
                     this.$root.toastRes(res);
                 }
@@ -1065,6 +1074,28 @@ export default {
             this.$root.emitAgent(this.endpoint, "updateStack", this.stack.name, (res) => {
                 this.processing = false;
                 this.$root.toastRes(res);
+                if (res.ok) {
+                    this.requestImageUpdateStatus();
+                }
+            });
+        },
+
+        requestImageUpdateStatus() {
+            this.$root.emitAgent(this.endpoint, "imageUpdateStatus", this.stack.name, (res) => {
+                if (res.ok) {
+                    this.imageUpdateStatus = res.imageUpdateStatus || {};
+                }
+            });
+        },
+
+        checkImages() {
+            this.checkingImages = true;
+            this.$root.emitAgent(this.endpoint, "checkImages", this.stack.name, (res) => {
+                this.checkingImages = false;
+                this.$root.toastRes(res);
+                if (res.ok) {
+                    this.imageUpdateStatus = res.imageUpdateStatus || {};
+                }
             });
         },
 

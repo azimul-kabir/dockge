@@ -8,6 +8,7 @@
                 </div>
                 <div v-if="!isEditMode" class="container-badges">
                     <span class="badge me-1" :class="bgStyle">{{ status }}</span>
+                    <span v-if="imageUpdateStatus?.updateAvailable" class="badge me-1 bg-warning text-dark">Update available</span>
 
                     <a v-for="port in (ports ?? envsubstService.ports)" :key="port" :href="parsePort(port).url" target="_blank">
                         <span class="badge me-1 bg-secondary">{{ parsePort(port).display }}</span>
@@ -214,6 +215,10 @@ export default defineComponent({
             default: false,
         },
         serviceStatus: {
+            type: Object,
+            default: null,
+        },
+        imageUpdateStatus: {
             type: Object,
             default: null,
         },

@@ -22,6 +22,11 @@ import { Settings } from "./settings";
 import { findComposeOverrideFile } from "./compose-overrides";
 import { createConfigRevision } from "./config-history";
 
+export interface ImageUpdateStatus {
+    image: string;
+    updateAvailable: boolean;
+}
+
 export class Stack {
 
     name: string;
@@ -113,6 +118,71 @@ export class Stack {
             return {};
         }
         return JSON.parse(res.stdout.toString());
+    }
+
+    /**
+     * Compare images used by running services with the images currently tagged
+     * in the local Docker daemon. This method never contacts a registry.
+     */
+    async getImageUpdateStatus() : Promise<Record<string, ImageUpdateStatus>> {
+        const status : Record<string, ImageUpdateStatus> = {};
+        let config : { services?: Record<string, { image?: string }> };
+
+        try {
+            const result = await childProcessAsync.spawn("docker", this.getComposeOptions("config", "--format", "json"), {
+                cwd: this.path,
+                encoding: "utf-8",
+            });
+            config = JSON.parse(result.stdout?.toString() || "{}");
+        } catch (e) {
+            log.warn("imageUpdateStatus", `Unable to resolve Compose config for ${this.name}: ${e}`);
+            return status;
+        }
+
+        for (const [ serviceName, service ] of Object.entries(config.services || {})) {
+            if (!service.image) {
+                continue;
+            }
+
+            status[serviceName] = {
+                image: service.image,
+                updateAvailable: false,
+            };
+
+            try {
+                const containerResult = await childProcessAsync.spawn("docker", this.getComposeOptions("ps", "-q", serviceName), {
+                    cwd: this.path,
+                    encoding: "utf-8",
+                });
+                const containerIDs = (containerResult.stdout?.toString() || "").trim().split(/\s+/).filter(Boolean);
+                if (containerIDs.length === 0) {
+                    continue;
+                }
+
+                const imageResult = await childProcessAsync.spawn("docker", [ "image", "inspect", "--format", "{{.Id}}", service.image ], {
+                    encoding: "utf-8",
+                });
+                const localImageID = imageResult.stdout?.toString().trim();
+                if (!localImageID) {
+                    continue;
+                }
+
+                for (const containerID of containerIDs) {
+                    const runningResult = await childProcessAsync.spawn("docker", [ "inspect", "--format", "{{.State.Running}} {{.Image}}", containerID ], {
+                        encoding: "utf-8",
+                    });
+                    const [ running, runningImageID ] = (runningResult.stdout?.toString() || "").trim().split(/\s+/, 2);
+                    if (running === "true" && runningImageID && runningImageID !== localImageID) {
+                        status[serviceName].updateAvailable = true;
+                        break;
+                    }
+                }
+            } catch (e) {
+                log.debug("imageUpdateStatus", `Unable to inspect ${this.name}/${serviceName}: ${e}`);
+            }
+        }
+
+        return status;
     }
 
     get isManagedByDockge() : boolean {
@@ -529,6 +599,15 @@ export class Stack {
             throw new Error("Failed to restart, please check the terminal output for more information.");
         }
         return exitCode;
+    }
+
+    async pullImages(socket: DockgeSocket) : Promise<Record<string, ImageUpdateStatus>> {
+        const terminalName = getComposeTerminalName(socket.endpoint, this.name);
+        const exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("pull"), this.path);
+        if (exitCode !== 0) {
+            throw new Error("Failed to pull, please check the terminal output for more information.");
+        }
+        return this.getImageUpdateStatus();
     }
 
     async joinCombinedTerminal(socket: DockgeSocket) {
