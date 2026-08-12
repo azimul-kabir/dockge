@@ -3,6 +3,7 @@ import { DockgeServer } from "../dockge-server";
 import { callbackError, callbackResult, checkLogin, DockgeSocket, ValidationError } from "../util-server";
 import { Stack } from "../stack";
 import { AgentSocket } from "../../common/agent-socket";
+import { getConfigRevision, listConfigRevisions } from "../config-history";
 
 export class DockerSocketHandler extends AgentSocketHandler {
     create(socket : DockgeSocket, server : DockgeServer, agentSocket : AgentSocket) {
@@ -34,6 +35,56 @@ export class DockerSocketHandler extends AgentSocketHandler {
                     msg: "Saved",
                     msgi18n: true,
                 }, callback);
+                server.sendStackList();
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
+        agentSocket.on("getConfigHistory", async (stackName : unknown, callback) => {
+            try {
+                checkLogin(socket);
+                if (typeof stackName !== "string") {
+                    throw new ValidationError("Stack name must be a string");
+                }
+                const stack = await Stack.getStack(server, stackName);
+                callbackResult({ ok: true, revisions: await listConfigRevisions(stack.path) }, callback);
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
+        agentSocket.on("getConfigRevision", async (stackName : unknown, revisionId : unknown, callback) => {
+            try {
+                checkLogin(socket);
+                if (typeof stackName !== "string" || typeof revisionId !== "string") {
+                    throw new ValidationError("Stack name and revision ID must be strings");
+                }
+                const stack = await Stack.getStack(server, stackName);
+                const revision = await getConfigRevision(stack.path, revisionId);
+                if (!revision) {
+                    throw new ValidationError("Revision not found");
+                }
+                callbackResult({ ok: true, revision }, callback);
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
+        agentSocket.on("restoreConfigRevision", async (stackName : unknown, revisionId : unknown, callback) => {
+            try {
+                checkLogin(socket);
+                if (typeof stackName !== "string" || typeof revisionId !== "string") {
+                    throw new ValidationError("Stack name and revision ID must be strings");
+                }
+                const currentStack = await Stack.getStack(server, stackName);
+                const revision = await getConfigRevision(currentStack.path, revisionId);
+                if (!revision) {
+                    throw new ValidationError("Revision not found");
+                }
+                const restored = new Stack(server, stackName, revision.composeYAML, revision.composeENV, revision.composeOverrideYAML, false);
+                await restored.save(false);
+                callbackResult({ ok: true, msg: "Revision restored", stack: await restored.toJSON(socket.endpoint) }, callback);
                 server.sendStackList();
             } catch (e) {
                 callbackError(e, callback);
