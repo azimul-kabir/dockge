@@ -19,6 +19,7 @@ import {
 import { InteractiveTerminal, Terminal } from "./terminal";
 import childProcessAsync from "promisify-child-process";
 import { Settings } from "./settings";
+import { findComposeOverrideFile } from "./compose-overrides";
 
 export class Stack {
 
@@ -26,19 +27,22 @@ export class Stack {
     protected _status: number = UNKNOWN;
     protected _composeYAML?: string;
     protected _composeENV?: string;
+    protected _composeOverrideYAML?: string;
     protected _configFilePath?: string;
     protected _composeFileName: string = "compose.yaml";
+    protected _composeOverrideFileName: string = "compose.override.yaml";
     protected server: DockgeServer;
 
     protected combinedTerminal? : Terminal;
 
     protected static managedStackList: Map<string, Stack> = new Map();
 
-    constructor(server : DockgeServer, name : string, composeYAML? : string, composeENV? : string, skipFSOperations = false) {
+    constructor(server : DockgeServer, name : string, composeYAML? : string, composeENV? : string, composeOverrideYAML? : string, skipFSOperations = false) {
         this.name = name;
         this.server = server;
         this._composeYAML = composeYAML;
         this._composeENV = composeENV;
+        this._composeOverrideYAML = composeOverrideYAML;
 
         if (!skipFSOperations) {
             // Check if compose file name is different from compose.yaml
@@ -47,6 +51,11 @@ export class Stack {
                     this._composeFileName = filename;
                     break;
                 }
+            }
+
+            const overrideFilename = findComposeOverrideFile(this.path);
+            if (overrideFilename) {
+                this._composeOverrideFileName = overrideFilename;
             }
         }
     }
@@ -74,6 +83,8 @@ export class Stack {
             ...obj,
             composeYAML: this.composeYAML,
             composeENV: this.composeENV,
+            composeOverrideYAML: this.composeOverrideYAML,
+            composeOverrideFileName: this._composeOverrideFileName,
             primaryHostname,
         };
     }
@@ -120,6 +131,10 @@ export class Stack {
         // Check YAML format
         yaml.parse(this.composeYAML);
 
+        if (this.composeOverrideYAML.trim() !== "") {
+            yaml.parse(this.composeOverrideYAML);
+        }
+
         let lines = this.composeENV.split("\n");
 
         // Check if the .env is able to pass docker-compose
@@ -150,6 +165,17 @@ export class Stack {
             }
         }
         return this._composeENV;
+    }
+
+    get composeOverrideYAML() : string {
+        if (this._composeOverrideYAML === undefined) {
+            try {
+                this._composeOverrideYAML = fs.readFileSync(path.join(this.path, this._composeOverrideFileName), "utf-8");
+            } catch (e) {
+                this._composeOverrideYAML = "";
+            }
+        }
+        return this._composeOverrideYAML;
     }
 
     get path() : string {
@@ -206,6 +232,15 @@ export class Stack {
             fs.writeFileSync(envPath, this.composeENV);
         }
 
+        const overridePath = path.join(dir, this._composeOverrideFileName);
+        const shouldWriteOverride = await fileExists(overridePath) || this.composeOverrideYAML.trim() !== "";
+
+        // Existing override files remain editable even when emptied. A new override
+        // file is only created when the user actually provides override YAML.
+        if (shouldWriteOverride) {
+            fs.writeFileSync(overridePath, this.composeOverrideYAML);
+        }
+
         if (process.env.PUID && process.env.PGID) {
             const uid = Number(process.env.PUID);
             const gid = Number(process.env.PGID);
@@ -213,6 +248,9 @@ export class Stack {
             fs.chownSync(path.join(dir, this._composeFileName), uid, gid);
             if (shouldWriteEnv) {
                 fs.chownSync(envPath, uid, gid);
+            }
+            if (shouldWriteOverride) {
+                fs.chownSync(overridePath, uid, gid);
             }
         }
     }
@@ -410,7 +448,7 @@ export class Stack {
         if (!skipFSOperations) {
             stack = new Stack(server, stackName);
         } else {
-            stack = new Stack(server, stackName, undefined, undefined, true);
+            stack = new Stack(server, stackName, undefined, undefined, undefined, true);
         }
 
         stack._status = UNKNOWN;
