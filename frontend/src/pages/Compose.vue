@@ -349,8 +349,9 @@
                             <h4 id="environment-variables-heading">Environment Variables</h4>
                             <span class="text-muted">Names and stack .env status only</span>
                         </div>
-                        <div class="environment-variable-list">
-                            <div v-for="variable in environmentVariableStatuses" :key="variable.name" class="environment-variable-row">
+                        <h5 v-if="referencedEnvironmentVariables.length > 0" class="environment-variable-section-heading">Referenced variables</h5>
+                        <div v-if="referencedEnvironmentVariables.length > 0" class="environment-variable-list">
+                            <div v-for="variable in referencedEnvironmentVariables" :key="variable.name" class="environment-variable-row">
                                 <span class="environment-variable-name">
                                     <span class="environment-variable-symbol" :class="`is-${variable.status}`" aria-hidden="true">{{ environmentVariableSymbol(variable.status) }}</span>
                                     <code>{{ variable.name }}</code>
@@ -362,9 +363,29 @@
                                 >{{ environmentVariableStatusLabel(variable.status) }}</span>
                             </div>
                         </div>
+                        <p v-if="usesEnvFile" class="environment-intelligence-note text-muted">
+                            This stack uses env_file. Variables not referenced with ${…} may still be passed to a service and used by the application.
+                        </p>
                         <p v-if="hasVariablesNotInStackEnvironment" class="environment-intelligence-note text-muted">
                             Variables not in stack .env may be supplied by global.env or another Compose environment source.
                         </p>
+                        <div v-if="notReferencedEnvironmentVariables.length > 0" class="environment-not-referenced">
+                            <div class="environment-not-referenced-summary">
+                                <span>{{ notReferencedEnvironmentVariables.length }} {{ notReferencedEnvironmentVariables.length === 1 ? "variable" : "variables" }} not referenced in Compose</span>
+                                <button v-if="shouldCollapseNotReferenced" type="button" class="btn btn-sm btn-normal" :aria-expanded="showNotReferencedVariables" @click="showNotReferencedVariables = !showNotReferencedVariables">
+                                    {{ showNotReferencedVariables ? "Hide" : "Show" }}
+                                </button>
+                            </div>
+                            <div v-if="!shouldCollapseNotReferenced || showNotReferencedVariables" class="environment-variable-list">
+                                <div v-for="variable in notReferencedEnvironmentVariables" :key="variable.name" class="environment-variable-row">
+                                    <span class="environment-variable-name">
+                                        <span class="environment-variable-symbol is-not-referenced" aria-hidden="true">{{ environmentVariableSymbol(variable.status) }}</span>
+                                        <code>{{ variable.name }}</code>
+                                    </span>
+                                    <span class="environment-variable-status is-not-referenced">{{ environmentVariableStatusLabel(variable.status) }}</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -421,7 +442,7 @@ import { BModal } from "bootstrap-vue-next";
 import NetworkInput from "../components/NetworkInput.vue";
 import dotenv from "dotenv";
 import { ref } from "vue";
-import { buildEnvironmentVariableStatuses } from "../util/environment-intelligence";
+import { buildEnvironmentVariableStatuses, composeUsesEnvFile } from "../util/environment-intelligence";
 
 const template = `
 services:
@@ -512,6 +533,7 @@ export default {
             showHistory: false,
             historyLoading: false,
             historyRevisions: [],
+            showNotReferencedVariables: false,
         };
     },
     computed: {
@@ -546,6 +568,22 @@ export default {
 
         hasVariablesNotInStackEnvironment() {
             return this.environmentVariableStatuses.some((variable) => variable.status === "not-in-stack");
+        },
+
+        referencedEnvironmentVariables() {
+            return this.environmentVariableStatuses.filter((variable) => variable.status !== "not-referenced");
+        },
+
+        notReferencedEnvironmentVariables() {
+            return this.environmentVariableStatuses.filter((variable) => variable.status === "not-referenced");
+        },
+
+        shouldCollapseNotReferenced() {
+            return this.notReferencedEnvironmentVariables.length > 5;
+        },
+
+        usesEnvFile() {
+            return composeUsesEnvFile(this.stack.composeYAML || "");
         },
 
         endpointDisplay() {
@@ -757,7 +795,7 @@ export default {
             return {
                 defined: "✓",
                 "not-in-stack": "⚠",
-                unused: "○",
+                "not-referenced": "○",
             }[status];
         },
 
@@ -765,7 +803,7 @@ export default {
             return {
                 defined: "Defined in .env",
                 "not-in-stack": "Not in stack .env",
-                unused: "Unused",
+                "not-referenced": "Not referenced in Compose",
             }[status];
         },
 
@@ -1405,6 +1443,23 @@ export default {
     display: grid;
 }
 
+.environment-variable-section-heading {
+    margin: 0.75rem 0 0.25rem;
+    font-size: 0.85rem;
+}
+
+.environment-not-referenced {
+    margin-top: 0.75rem;
+}
+
+.environment-not-referenced-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.85rem;
+}
+
 .environment-variable-row {
     display: flex;
     align-items: center;
@@ -1438,7 +1493,7 @@ export default {
         color: #b58105;
     }
 
-    &.is-unused {
+    &.is-not-referenced {
         color: #6c757d;
     }
 }
