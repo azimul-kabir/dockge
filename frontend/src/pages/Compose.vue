@@ -226,6 +226,49 @@
                     </div>
                 </section>
 
+                <section v-if="!isAdd && stack.composeOverrideYAML && stack.composeOverrideYAML.trim() !== ''" ref="overrideSection" class="stack-section" :class="{ 'editor-fullscreen-section': fullscreenEditor === 'override' }" aria-labelledby="override-heading">
+                    <div class="stack-section-heading editor-heading">
+                        <h2 id="override-heading">Compose Override</h2>
+                        <div class="editor-heading-actions">
+                            <button type="button" class="btn btn-sm btn-normal wrap-toggle" :aria-pressed="overrideWrapEnabled" @click="overrideWrapEnabled = !overrideWrapEnabled">
+                                Wrap {{ overrideWrapEnabled ? "On" : "Off" }}
+                            </button>
+                            <button type="button" class="btn btn-sm btn-normal fullscreen-toggle" :aria-pressed="fullscreenEditor === 'override'" @click="toggleFullscreenEditor('override')">
+                                <font-awesome-icon :icon="fullscreenEditor === 'override' ? 'compress' : 'expand'" class="me-1" />
+                                {{ fullscreenEditor === 'override' ? "Exit" : "Full screen" }}
+                            </button>
+                        </div>
+                    </div>
+                    <div v-if="isEditMode && activeEditorSection === 'override'" class="mobile-editor-actions-slot">
+                        <div class="mobile-editor-actions" aria-label="Editor actions">
+                            <button class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button>
+                            <button class="btn btn-normal" :disabled="processing" @click="saveStack">
+                                <font-awesome-icon icon="save" class="me-1" />
+                                {{ $t("saveStackDraft") }}
+                            </button>
+                            <button class="btn btn-primary" :disabled="processing" @click="deployStack">
+                                <font-awesome-icon icon="rocket" class="me-1" />
+                                {{ $t("deployStack") }}
+                            </button>
+                        </div>
+                    </div>
+                    <h4 class="mb-3 stack-section-filename">{{ stack.composeOverrideFileName || "compose.override.yaml" }}</h4>
+                    <div class="shadow-box mb-3 editor-box" :class="{ 'edit-mode': isEditMode, 'keyboard-active-editor-box': mobileKeyboardOpen && activeEditorSection === 'override', 'fullscreen-editor-box': fullscreenEditor === 'override' }">
+                        <code-mirror
+                            ref="overrideEditor"
+                            v-model="stack.composeOverrideYAML"
+                            :extensions="overrideExtensions"
+                            minimal
+                            :dark="$root.isDark"
+                            tab="true"
+                            :disabled="!isEditMode"
+                            :hasFocus="editorFocus"
+                            @focus="setActiveEditorSection('override', $event)"
+                            @change="yamlCodeChange"
+                        />
+                    </div>
+                </section>
+
                 <section ref="environmentSection" class="stack-section" :class="{ 'editor-fullscreen-section': fullscreenEditor === 'environment' }" aria-labelledby="environment-heading">
                     <div class="stack-section-heading editor-heading">
                         <h2 id="environment-heading">Environment</h2>
@@ -388,7 +431,8 @@ export default {
             combinedTerminalRows: COMBINED_TERMINAL_ROWS,
             combinedTerminalCols: COMBINED_TERMINAL_COLS,
             stack: {
-
+                composeOverrideYAML: "",
+                composeOverrideFileName: "compose.override.yaml",
             },
             serviceStatusList: {},
             dockerStats: {},
@@ -399,6 +443,7 @@ export default {
             stopServiceStatusTimeout: false,
             stopDockerStatsTimeout: false,
             composeWrapEnabled: window.matchMedia("(max-width: 767.98px)").matches,
+            overrideWrapEnabled: window.matchMedia("(max-width: 767.98px)").matches,
             environmentWrapEnabled: window.matchMedia("(max-width: 767.98px)").matches,
             mobileKeyboardOffset: 0,
             mobileVisualTop: 0,
@@ -415,6 +460,14 @@ export default {
                 ...this.extensions,
             ];
             return this.composeWrapEnabled ? [ ...extensions, EditorView.lineWrapping ] : extensions;
+        },
+
+        overrideExtensions() {
+            const extensions = [
+                ...(this.$root.isDark ? [ editorTheme ] : lightCodeMirrorTheme),
+                ...this.extensions,
+            ];
+            return this.overrideWrapEnabled ? [ ...extensions, EditorView.lineWrapping ] : extensions;
         },
 
         environmentExtensions() {
@@ -543,6 +596,16 @@ export default {
             deep: true,
         },
 
+        "stack.composeOverrideYAML": {
+            handler() {
+                if (this.editorFocus) {
+                    console.debug("override yaml code changed");
+                    this.yamlCodeChange();
+                }
+            },
+            deep: true,
+        },
+
         jsonConfig: {
             handler() {
                 if (!this.editorFocus) {
@@ -592,6 +655,8 @@ export default {
                 name: "",
                 composeYAML,
                 composeENV,
+                composeOverrideYAML: "",
+                composeOverrideFileName: "compose.override.yaml",
                 isManagedByDockge: true,
                 endpoint: "",
             };
@@ -618,13 +683,23 @@ export default {
         document.body.classList.remove("dockge-editor-fullscreen");
     },
     methods: {
+        editorRef(section) {
+            if (section === "compose") {
+                return this.$refs.editor;
+            }
+            if (section === "override") {
+                return this.$refs.overrideEditor;
+            }
+            return this.$refs.envEditor;
+        },
+
         toggleFullscreenEditor(section) {
             this.fullscreenEditor = this.fullscreenEditor === section ? null : section;
             document.body.classList.toggle("dockge-editor-fullscreen", Boolean(this.fullscreenEditor));
             this.activeEditorSection = section;
             this.mobileEditorNeedsAlignment = true;
             this.$nextTick(() => {
-                const editorRef = section === "compose" ? this.$refs.editor : this.$refs.envEditor;
+                const editorRef = this.editorRef(section);
                 editorRef?.view?.requestMeasure();
                 editorRef?.view?.focus();
             });
@@ -662,9 +737,7 @@ export default {
                 this.mobileEditorHeight = Math.min(280, Math.max(200, availableEditorHeight));
 
                 this.$nextTick(() => requestAnimationFrame(() => {
-                    const editorRef = activeEditor === this.$refs.editor?.view?.dom
-                        ? this.$refs.editor
-                        : this.$refs.envEditor;
+                    const editorRef = this.editorRef(this.activeEditorSection);
                     const cursorPosition = editorRef?.view?.state.selection.main.head;
                     editorRef?.view?.requestMeasure();
                     if (cursorPosition !== undefined) {
@@ -834,7 +907,7 @@ export default {
 
             this.bindTerminal();
 
-            this.$root.emitAgent(this.stack.endpoint, "deployStack", this.stack.name, this.stack.composeYAML, this.stack.composeENV, this.isAdd, (res) => {
+            this.$root.emitAgent(this.stack.endpoint, "deployStack", this.stack.name, this.stack.composeYAML, this.stack.composeENV, this.stack.composeOverrideYAML || "", this.isAdd, (res) => {
                 this.processing = false;
                 this.$root.toastRes(res);
 
@@ -848,7 +921,7 @@ export default {
         saveStack() {
             this.processing = true;
 
-            this.$root.emitAgent(this.stack.endpoint, "saveStack", this.stack.name, this.stack.composeYAML, this.stack.composeENV, this.isAdd, (res) => {
+            this.$root.emitAgent(this.stack.endpoint, "saveStack", this.stack.name, this.stack.composeYAML, this.stack.composeENV, this.stack.composeOverrideYAML || "", this.isAdd, (res) => {
                 this.processing = false;
                 this.$root.toastRes(res);
 
@@ -952,6 +1025,13 @@ export default {
 
                 this.yamlDoc = doc;
                 this.jsonConfig = config;
+
+                if (this.stack.composeOverrideYAML?.trim()) {
+                    let overrideDoc = parseDocument(this.stack.composeOverrideYAML);
+                    if (overrideDoc.errors.length > 0) {
+                        throw overrideDoc.errors[0];
+                    }
+                }
 
                 let env = dotenv.parse(this.stack.composeENV);
                 let envYAML = envsubstYAML(this.stack.composeYAML, env);
