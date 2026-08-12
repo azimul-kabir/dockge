@@ -1,7 +1,6 @@
 export interface EnvironmentVariableStatus {
     name: string;
-    source: "stack" | "undefined";
-    used: boolean;
+    status: "defined" | "not-in-stack" | "unused";
 }
 
 const COMPOSE_VARIABLE_PATTERN = /\$\{([A-Za-z_][A-Za-z0-9_]*)(?:(?::?[-+?])[^}]*)?\}/g;
@@ -23,13 +22,14 @@ export function buildEnvironmentVariableStatuses(
     stackEnvironment: Record<string, string>
 ): EnvironmentVariableStatus[] {
     const referencedNames = new Set(collectComposeVariableNames(composeYAML));
-    const allNames = new Set([...referencedNames, ...Object.keys(stackEnvironment)]);
+    const allNames = new Set([ ...referencedNames, ...Object.keys(stackEnvironment) ]);
 
     return Array.from(allNames)
         .sort((a, b) => a.localeCompare(b))
         .map((name) => ({
             name,
-            source: Object.prototype.hasOwnProperty.call(stackEnvironment, name) ? "stack" : "undefined",
-            used: referencedNames.has(name),
+            status: referencedNames.has(name)
+                ? Object.prototype.hasOwnProperty.call(stackEnvironment, name) ? "defined" : "not-in-stack"
+                : "unused",
         }));
 }
