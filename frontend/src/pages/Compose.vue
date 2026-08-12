@@ -50,6 +50,11 @@
                         {{ $t("stopStack") }}
                     </button>
 
+                    <button v-if="!isEditMode && !isAdd" class="btn btn-normal" :disabled="processing" @click="toggleHistory">
+                        <font-awesome-icon icon="clock-rotate-left" class="me-1" />
+                        History
+                    </button>
+
                     <BDropdown right text="" variant="normal" class="edit-more">
                         <BDropdownItem @click="downStack">
                             <font-awesome-icon icon="stop" class="me-1" />
@@ -65,6 +70,29 @@
                     {{ $t("deleteStack") }}
                 </button>
             </div>
+
+            <section v-if="showHistory && !isAdd" class="stack-section history-panel" aria-labelledby="history-heading">
+                <div class="stack-section-heading editor-heading">
+                    <h2 id="history-heading">Configuration History</h2>
+                    <button type="button" class="btn btn-sm btn-normal" @click="showHistory = false">Close</button>
+                </div>
+                <div class="shadow-box big-padding mb-3">
+                    <div v-if="historyLoading">Loading revisions…</div>
+                    <div v-else-if="historyRevisions.length === 0" class="text-muted">No saved revisions yet. A revision is created before an existing stack is changed.</div>
+                    <div v-else class="history-list">
+                        <div v-for="revision in historyRevisions" :key="revision.id" class="history-row">
+                            <div class="history-meta">
+                                <strong>{{ formatRevisionDate(revision.createdAt) }}</strong>
+                                <span class="text-muted">{{ revision.id }}</span>
+                            </div>
+                            <div class="history-actions">
+                                <button class="btn btn-sm btn-normal" :disabled="processing" @click="previewRevision(revision.id)">Preview</button>
+                                <button class="btn btn-sm btn-danger" :disabled="processing" @click="restoreRevision(revision.id)">Restore</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <!-- URLs -->
             <div v-if="urls.length > 0" class="mb-3">
@@ -451,6 +479,9 @@ export default {
             mobileEditorNeedsAlignment: true,
             activeEditorSection: "compose",
             fullscreenEditor: null,
+            showHistory: false,
+            historyLoading: false,
+            historyRevisions: [],
         };
     },
     computed: {
@@ -683,6 +714,66 @@ export default {
         document.body.classList.remove("dockge-editor-fullscreen");
     },
     methods: {
+        toggleHistory() {
+            this.showHistory = !this.showHistory;
+            if (this.showHistory) {
+                this.loadHistory();
+            }
+        },
+
+        loadHistory() {
+            this.historyLoading = true;
+            this.$root.emitAgent(this.endpoint, "listStackConfigHistory", this.stack.name, (res) => {
+                this.historyLoading = false;
+                if (res.ok) {
+                    this.historyRevisions = res.revisions || [];
+                } else {
+                    this.$root.toastRes(res);
+                }
+            });
+        },
+
+        previewRevision(revisionId) {
+            this.processing = true;
+            this.$root.emitAgent(this.endpoint, "getStackConfigRevision", this.stack.name, revisionId, (res) => {
+                this.processing = false;
+                if (!res.ok) {
+                    this.$root.toastRes(res);
+                    return;
+                }
+                const revision = res.revision;
+                this.stack.composeYAML = revision.composeYAML;
+                this.stack.composeENV = revision.composeENV;
+                this.stack.composeOverrideYAML = revision.composeOverrideYAML || "";
+                this.yamlCodeChange();
+                this.isEditMode = true;
+                this.showHistory = false;
+                this.$root.toastSuccess("Revision loaded into the editor. Save or deploy to apply it.");
+            });
+        },
+
+        restoreRevision(revisionId) {
+            if (!confirm("Restore this saved stack configuration? The current configuration will be saved to history first.")) {
+                return;
+            }
+            this.processing = true;
+            this.$root.emitAgent(this.endpoint, "restoreStackConfigRevision", this.stack.name, revisionId, (res) => {
+                this.processing = false;
+                this.$root.toastRes(res);
+                if (res.ok) {
+                    this.showHistory = false;
+                    this.loadStack();
+                }
+            });
+        },
+
+        formatRevisionDate(value) {
+            if (!value) {
+                return "Saved revision";
+            }
+            return new Date(value).toLocaleString();
+        },
+
         editorRef(section) {
             if (section === "compose") {
                 return this.$refs.editor;
@@ -1211,6 +1302,41 @@ export default {
     gap: 0.5rem;
 }
 
+.history-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.history-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(127, 127, 127, 0.2);
+}
+
+.history-row:last-child {
+    border-bottom: 0;
+}
+
+.history-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.history-meta .text-muted {
+    overflow-wrap: anywhere;
+    font-size: 0.8rem;
+}
+
+.history-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+}
+
 .wrap-toggle,
 .fullscreen-toggle {
     flex: 0 0 auto;
@@ -1332,6 +1458,20 @@ export default {
     .editor-heading-actions {
         width: 100%;
         justify-content: stretch;
+    }
+
+    .history-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .history-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .history-actions .btn {
+        min-height: 40px;
     }
 
     .wrap-toggle,
