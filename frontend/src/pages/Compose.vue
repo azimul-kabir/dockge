@@ -379,12 +379,12 @@
                         </p>
                         <div v-if="notReferencedEnvironmentVariables.length > 0" class="environment-not-referenced">
                             <div class="environment-not-referenced-summary">
-                                <span>{{ notReferencedEnvironmentVariables.length }} {{ notReferencedEnvironmentVariables.length === 1 ? "variable" : "variables" }} not referenced in Compose</span>
-                                <button v-if="shouldCollapseNotReferenced" type="button" class="btn btn-sm btn-normal" :aria-expanded="showNotReferencedVariables" @click="showNotReferencedVariables = !showNotReferencedVariables">
+                                <span class="environment-not-referenced-summary-text">{{ notReferencedEnvironmentVariables.length }} {{ notReferencedEnvironmentVariables.length === 1 ? "variable" : "variables" }} not referenced in Compose</span>
+                                <button type="button" class="btn btn-sm btn-normal" :aria-expanded="showNotReferencedVariables" aria-controls="not-referenced-environment-variables" @click="showNotReferencedVariables = !showNotReferencedVariables">
                                     {{ showNotReferencedVariables ? "Hide" : "Show" }}
                                 </button>
                             </div>
-                            <div v-if="!shouldCollapseNotReferenced || showNotReferencedVariables" class="environment-variable-list">
+                            <div v-if="showNotReferencedVariables" id="not-referenced-environment-variables" class="environment-variable-list">
                                 <div v-for="variable in notReferencedEnvironmentVariables" :key="variable.name" class="environment-variable-row">
                                     <span class="environment-variable-name">
                                         <span class="environment-variable-symbol is-not-referenced" aria-hidden="true">{{ environmentVariableSymbol(variable.status) }}</span>
@@ -586,10 +586,6 @@ export default {
             return this.environmentVariableStatuses.filter((variable) => variable.status === "not-referenced");
         },
 
-        shouldCollapseNotReferenced() {
-            return this.notReferencedEnvironmentVariables.length > 5;
-        },
-
         usesEnvFile() {
             return composeUsesEnvFile(this.stack.composeYAML || "");
         },
@@ -742,7 +738,9 @@ export default {
         },
 
         $route(to, from) {
-
+            if (to.params.stackName !== from.params.stackName || to.params.endpoint !== from.params.endpoint) {
+                this.showNotReferencedVariables = false;
+            }
         }
     },
     mounted() {
@@ -836,9 +834,18 @@ export default {
 
         historyChangeItems(changes) {
             return [
-                { label: "Compose", counts: changes.compose },
-                { label: ".env", counts: changes.env },
-                { label: "Override", counts: changes.override },
+                {
+                    label: "Compose",
+                    counts: changes.compose,
+                },
+                {
+                    label: ".env",
+                    counts: changes.env,
+                },
+                {
+                    label: "Override",
+                    counts: changes.override,
+                },
             ];
         },
 
@@ -1474,10 +1481,20 @@ export default {
 
 .environment-not-referenced-summary {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 0.5rem 1rem;
     font-size: 0.85rem;
+
+    .environment-not-referenced-summary-text {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .btn {
+        flex: 0 0 auto;
+    }
 }
 
 .environment-variable-row {
