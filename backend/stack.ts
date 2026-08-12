@@ -90,6 +90,7 @@ export class Stack {
             composeYAML: this.composeYAML,
             composeENV: this.composeENV,
             composeOverrideYAML: this.composeOverrideYAML,
+            composeOverrideExists: findComposeOverrideFile(this.path) !== null,
             composeOverrideFileName: this._composeOverrideFileName,
             primaryHostname,
         };
