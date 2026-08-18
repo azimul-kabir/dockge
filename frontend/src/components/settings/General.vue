@@ -57,6 +57,62 @@
                 <div class="form-text"></div>
             </div>
 
+            <div class="mb-4">
+                <h5 class="settings-subheading">Automatic image updates</h5>
+                <div class="form-check mb-3">
+                    <input
+                        id="imageUpdateCheckEnabled"
+                        v-model="settings.imageUpdateCheckEnabled"
+                        class="form-check-input"
+                        type="checkbox"
+                    />
+                    <label class="form-check-label" for="imageUpdateCheckEnabled">
+                        Check for newer container images periodically
+                    </label>
+                </div>
+
+                <label class="form-label" for="imageUpdateCheckIntervalHours">Check every</label>
+                <div class="input-group mb-3 image-update-interval">
+                    <input
+                        id="imageUpdateCheckIntervalHours"
+                        v-model.number="settings.imageUpdateCheckIntervalHours"
+                        class="form-control"
+                        type="number"
+                        min="1"
+                        step="1"
+                        :disabled="!settings.imageUpdateCheckEnabled"
+                    />
+                    <span class="input-group-text">hours</span>
+                </div>
+
+                <div class="form-check">
+                    <input
+                        id="imageUpdateAutoDeploy"
+                        v-model="settings.imageUpdateAutoDeploy"
+                        class="form-check-input"
+                        type="checkbox"
+                        :disabled="!settings.imageUpdateCheckEnabled"
+                    />
+                    <label class="form-check-label" for="imageUpdateAutoDeploy">
+                        Automatically deploy newer images for running stacks
+                    </label>
+                </div>
+                <div class="form-check mt-3">
+                    <input
+                        id="imageUpdateDeleteOldImages"
+                        v-model="settings.imageUpdateDeleteOldImages"
+                        class="form-check-input"
+                        type="checkbox"
+                    />
+                    <label class="form-check-label" for="imageUpdateDeleteOldImages">
+                        Delete replaced images after successful updates
+                    </label>
+                </div>
+                <div class="form-text">
+                    Image checks pull the configured tags. Automatic deployment only recreates managed stacks that are already running. Image cleanup applies to both automatic updates and the manual Update button; images still used elsewhere are kept.
+                </div>
+            </div>
+
             <!-- Save Button -->
             <div>
                 <button class="btn btn-primary" type="submit">
@@ -112,3 +168,8 @@ export default {
 };
 </script>
 
+<style scoped>
+.image-update-interval {
+    max-width: 16rem;
+}
+</style>

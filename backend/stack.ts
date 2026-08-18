@@ -331,8 +331,8 @@ export class Stack {
         }
     }
 
-    async deploy(socket : DockgeSocket) : Promise<number> {
-        const terminalName = getComposeTerminalName(socket.endpoint, this.name);
+    async deploy(socket? : DockgeSocket) : Promise<number> {
+        const terminalName = getComposeTerminalName(socket?.endpoint || "", this.name);
         let exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("up", "-d", "--remove-orphans"), this.path);
         if (exitCode !== 0) {
             throw new Error("Failed to deploy, please check the terminal output for more information.");
@@ -581,11 +581,19 @@ export class Stack {
         return exitCode;
     }
 
-    async update(socket: DockgeSocket) {
-        const terminalName = getComposeTerminalName(socket.endpoint, this.name);
+    async update(socket?: DockgeSocket, deleteReplacedImages = false, onlyIfImageChanged = false) {
+        const terminalName = getComposeTerminalName(socket?.endpoint || "", this.name);
+        const previousImageIDs = deleteReplacedImages ? await this.getConfiguredImageIDs() : new Set<string>();
         let exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("pull"), this.path);
         if (exitCode !== 0) {
             throw new Error("Failed to pull, please check the terminal output for more information.");
+        }
+
+        if (onlyIfImageChanged) {
+            const imageStatus = await this.getImageUpdateStatus();
+            if (!Object.values(imageStatus).some(item => item.updateAvailable)) {
+                return exitCode;
+            }
         }
 
         // If the stack is not running, we don't need to restart it
@@ -599,11 +607,64 @@ export class Stack {
         if (exitCode !== 0) {
             throw new Error("Failed to restart, please check the terminal output for more information.");
         }
+
+        if (deleteReplacedImages) {
+            await this.deleteReplacedImages(previousImageIDs);
+        }
         return exitCode;
     }
 
-    async pullImages(socket: DockgeSocket) : Promise<Record<string, ImageUpdateStatus>> {
-        const terminalName = getComposeTerminalName(socket.endpoint, this.name);
+    private async getConfiguredImageIDs() : Promise<Set<string>> {
+        const imageIDs = new Set<string>();
+        try {
+            const configResult = await childProcessAsync.spawn("docker", this.getComposeOptions("config", "--format", "json"), {
+                cwd: this.path,
+                encoding: "utf-8",
+            });
+            const config = JSON.parse(configResult.stdout?.toString() || "{}") as { services?: Record<string, { image?: string }> };
+
+            for (const service of Object.values(config.services || {})) {
+                if (!service.image) {
+                    continue;
+                }
+                try {
+                    const inspectResult = await childProcessAsync.spawn("docker", [ "image", "inspect", "--format", "{{.Id}}", service.image ], {
+                        encoding: "utf-8",
+                    });
+                    const imageID = inspectResult.stdout?.toString().trim();
+                    if (imageID) {
+                        imageIDs.add(imageID);
+                    }
+                } catch (e) {
+                    log.debug("imageCleanup", `Unable to inspect image ${service.image}: ${e}`);
+                }
+            }
+        } catch (e) {
+            log.warn("imageCleanup", `Unable to record images for stack ${this.name}: ${e}`);
+        }
+        return imageIDs;
+    }
+
+    private async deleteReplacedImages(previousImageIDs: Set<string>) {
+        const currentImageIDs = await this.getConfiguredImageIDs();
+        for (const imageID of previousImageIDs) {
+            if (currentImageIDs.has(imageID)) {
+                continue;
+            }
+
+            try {
+                await childProcessAsync.spawn("docker", [ "image", "rm", imageID ], {
+                    encoding: "utf-8",
+                });
+                log.info("imageCleanup", `Deleted replaced image ${imageID} after updating stack ${this.name}.`);
+            } catch (e) {
+                log.info("imageCleanup", `Kept replaced image ${imageID} because it could not be safely removed: ${e}`);
+            }
+        }
+    }
+
+    async pullImages(socket?: DockgeSocket) : Promise<Record<string, ImageUpdateStatus>> {
+        const terminalName = getComposeTerminalName(socket?.endpoint || "", this.name);
         const exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", this.getComposeOptions("pull"), this.path);
         if (exitCode !== 0) {
             throw new Error("Failed to pull, please check the terminal output for more information.");

@@ -123,6 +123,18 @@ export default {
                 if (this.settings.checkUpdate === undefined) {
                     this.settings.checkUpdate = true;
                 }
+                if (this.settings.imageUpdateCheckEnabled === undefined) {
+                    this.settings.imageUpdateCheckEnabled = false;
+                }
+                if (this.settings.imageUpdateCheckIntervalHours === undefined) {
+                    this.settings.imageUpdateCheckIntervalHours = 24;
+                }
+                if (this.settings.imageUpdateAutoDeploy === undefined) {
+                    this.settings.imageUpdateAutoDeploy = false;
+                }
+                if (this.settings.imageUpdateDeleteOldImages === undefined) {
+                    this.settings.imageUpdateDeleteOldImages = false;
+                }
                 this.settingsLoaded = true;
             });
         },
@@ -159,6 +171,13 @@ export default {
          * @returns {Object} Contains success state and error msg
          */
         validateSettings() {
+            const imageUpdateInterval = Number(this.settings.imageUpdateCheckIntervalHours);
+            if (this.settings.imageUpdateCheckEnabled && (!Number.isFinite(imageUpdateInterval) || imageUpdateInterval < 1)) {
+                return {
+                    success: false,
+                    msg: "Image update check interval must be at least 1 hour.",
+                };
+            }
             if (this.settings.keepDataPeriodDays < 0) {
                 return {
                     success: false,

@@ -289,7 +289,25 @@ export class MainSocketHandler extends SocketHandler {
                 }
                 delete data.globalENV;
 
+                if (data.imageUpdateCheckEnabled !== undefined) {
+                    data.imageUpdateCheckEnabled = data.imageUpdateCheckEnabled === true;
+                }
+                if (data.imageUpdateAutoDeploy !== undefined) {
+                    data.imageUpdateAutoDeploy = data.imageUpdateAutoDeploy === true;
+                }
+                if (data.imageUpdateDeleteOldImages !== undefined) {
+                    data.imageUpdateDeleteOldImages = data.imageUpdateDeleteOldImages === true;
+                }
+                if (data.imageUpdateCheckIntervalHours !== undefined) {
+                    const intervalHours = Number(data.imageUpdateCheckIntervalHours);
+                    if (!Number.isFinite(intervalHours) || intervalHours < 1) {
+                        throw new ValidationError("Image update check interval must be at least 1 hour.");
+                    }
+                    data.imageUpdateCheckIntervalHours = intervalHours;
+                }
+
                 await Settings.setSettings("general", data);
+                await server.imageUpdateScheduler.restart();
 
                 callback({
                     ok: true,

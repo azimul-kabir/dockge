@@ -37,8 +37,10 @@ import { AgentSocketHandler } from "./agent-socket-handler";
 import { AgentSocket } from "../common/agent-socket";
 import { ManageAgentSocketHandler } from "./socket-handlers/manage-agent-socket-handler";
 import { Terminal } from "./terminal";
+import { ImageUpdateScheduler } from "./image-update-scheduler";
 
 export class DockgeServer {
+    imageUpdateScheduler = new ImageUpdateScheduler(this);
     app : Express;
     httpServer : http.Server;
     packageJSON : PackageJson;
@@ -404,6 +406,9 @@ export class DockgeServer {
             });
 
             checkVersion.startInterval();
+            this.imageUpdateScheduler.restart().catch(e => {
+                log.error("imageUpdateScheduler", `Unable to start image update checks: ${e}`);
+            });
         });
 
         gracefulShutdown(this.httpServer, {
@@ -681,6 +686,7 @@ export class DockgeServer {
 
         // TODO: Close all terminals?
 
+        this.imageUpdateScheduler.stop();
         await Database.close();
         Settings.stopCacheCleaner();
     }

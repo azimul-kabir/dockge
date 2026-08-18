@@ -4,6 +4,7 @@ import { callbackError, callbackResult, checkLogin, DockgeSocket, ValidationErro
 import { Stack } from "../stack";
 import { AgentSocket } from "../../common/agent-socket";
 import { getConfigRevision, listConfigRevisionsWithChanges } from "../config-history";
+import { Settings } from "../settings";
 
 export class DockerSocketHandler extends AgentSocketHandler {
     create(socket : DockgeSocket, server : DockgeServer, agentSocket : AgentSocket) {
@@ -242,7 +243,27 @@ export class DockerSocketHandler extends AgentSocketHandler {
                 }
 
                 const stack = await Stack.getStack(server, stackName);
-                await stack.update(socket);
+                await stack.update(socket, await Settings.get("imageUpdateDeleteOldImages") === true);
+                callbackResult({
+                    ok: true,
+                    msg: "Updated",
+                    msgi18n: true,
+                }, callback);
+                server.sendStackList();
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
+        agentSocket.on("updateStackIfImagesChanged", async (stackName : unknown, callback) => {
+            try {
+                checkLogin(socket);
+                if (typeof(stackName) !== "string") {
+                    throw new ValidationError("Stack name must be a string");
+                }
+
+                const stack = await Stack.getStack(server, stackName);
+                await stack.update(socket, await Settings.get("imageUpdateDeleteOldImages") === true, true);
                 callbackResult({
                     ok: true,
                     msg: "Updated",

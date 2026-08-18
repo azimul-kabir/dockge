@@ -10,7 +10,16 @@
                     {{ $t("Select") }}
                 </button>
 
-                <div class="placeholder"></div>
+                <div class="bulk-image-actions">
+                    <button class="btn btn-outline-normal" type="button" :disabled="checkingAllImages || updatingAllImages" @click="checkAllImages">
+                        <font-awesome-icon icon="arrows-rotate" class="me-1" />
+                        {{ checkingAllImages ? "Checking…" : "Check all images" }}
+                    </button>
+                    <button class="btn btn-primary" type="button" :disabled="checkingAllImages || updatingAllImages || updateTargetCount === 0" @click="updateAllImages">
+                        <font-awesome-icon icon="cloud-arrow-down" class="me-1" />
+                        {{ updatingAllImages ? "Updating…" : `Update all (${updateTargetCount})` }}
+                    </button>
+                </div>
                 <div class="search-wrapper">
                     <a v-if="searchText == ''" class="search-icon">
                         <font-awesome-icon icon="search" />
@@ -108,6 +117,9 @@ export default {
                 tags: null,
             },
             closedAgents: new Map(),
+            checkingAllImages: false,
+            updatingAllImages: false,
+            imageUpdateTargets: {},
         };
     },
     computed: {
@@ -217,6 +229,10 @@ export default {
             return Object.keys(this.selectedStacks).length;
         },
 
+        updateTargetCount() {
+            return Object.keys(this.imageUpdateTargets).length;
+        },
+
         /**
          * Determines if any filters are active.
          * @returns {boolean} True if any filter is active, false otherwise.
@@ -258,6 +274,74 @@ export default {
         },
     },
     methods: {
+        getManagedStacks() {
+            return Object.values(this.$root.completeStackList).filter(stack => stack.isManagedByDockge);
+        },
+        stackUpdateKey(stack) {
+            return `${stack.endpoint || ""}::${stack.name}`;
+        },
+        emitAgentAsync(endpoint, eventName, stackName) {
+            return new Promise(resolve => {
+                this.$root.emitAgent(endpoint || "", eventName, stackName, resolve);
+            });
+        },
+        async checkAllImages() {
+            this.checkingAllImages = true;
+            this.imageUpdateTargets = {};
+            let failed = 0;
+
+            try {
+                for (const stack of this.getManagedStacks()) {
+                    const res = await this.emitAgentAsync(stack.endpoint, "checkImages", stack.name);
+                    if (!res?.ok) {
+                        failed++;
+                        continue;
+                    }
+
+                    if (Object.values(res.imageUpdateStatus || {}).some(status => status.updateAvailable)) {
+                        this.imageUpdateTargets[this.stackUpdateKey(stack)] = stack;
+                    }
+                }
+
+                if (this.updateTargetCount > 0) {
+                    this.$root.toastSuccess(`${this.updateTargetCount} stack(s) have image updates available.`);
+                } else {
+                    this.$root.toastSuccess("All stack images are up to date.");
+                }
+                if (failed > 0) {
+                    this.$root.toastError(`Image checks failed for ${failed} stack(s).`);
+                }
+            } finally {
+                this.checkingAllImages = false;
+            }
+        },
+        async updateAllImages() {
+            this.updatingAllImages = true;
+            const targets = Object.entries(this.imageUpdateTargets);
+            let updated = 0;
+            let failed = 0;
+
+            try {
+                for (const [ key, stack ] of targets) {
+                    const res = await this.emitAgentAsync(stack.endpoint, "updateStackIfImagesChanged", stack.name);
+                    if (res?.ok) {
+                        updated++;
+                        delete this.imageUpdateTargets[key];
+                    } else {
+                        failed++;
+                    }
+                }
+
+                if (updated > 0) {
+                    this.$root.toastSuccess(`Updated ${updated} stack(s).`);
+                }
+                if (failed > 0) {
+                    this.$root.toastError(`Updates failed for ${failed} stack(s).`);
+                }
+            } finally {
+                this.updatingAllImages = false;
+            }
+        },
         /**
          * Clear the search bar
          * @returns {void}
@@ -374,12 +458,31 @@ export default {
     align-items: center;
 }
 
+.bulk-image-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-right: auto;
+}
+
 .header-filter {
     display: flex;
     align-items: center;
 }
 
 @media (max-width: 767.98px) {
+    .header-top {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .bulk-image-actions {
+        width: 100%;
+
+        .btn {
+            flex: 1;
+        }
+    }
+
     .stack-list-box {
         flex: 0 0 auto;
         width: 100%;
