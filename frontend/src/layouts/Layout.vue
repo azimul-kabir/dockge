@@ -21,6 +21,7 @@
             </a>
 
             <ul class="nav nav-pills">
+                <li v-if="$root.loggedIn" id="desktop-image-actions" class="nav-item me-3 desktop-image-actions"></li>
                 <li v-if="$root.loggedIn" class="nav-item me-2">
                     <router-link to="/" class="nav-link">
                         <font-awesome-icon icon="home" /> {{ $t("home") }}
@@ -162,6 +163,11 @@ export default {
     &.status-page {
         background-color: rgba(255, 255, 255, 0.1);
     }
+}
+
+.desktop-image-actions {
+    display: flex;
+    align-items: center;
 }
 
 .bottom-nav {

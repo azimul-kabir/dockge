@@ -2,7 +2,8 @@
     <router-link :to="url" :class="{ 'dim' : !stack.isManagedByDockge }" class="item" @click="$emit('stack-selected', url)">
         <Uptime :stack="stack" :fixed-width="true" class="me-2" />
         <div class="title">
-            <span>{{ stackName }}</span>
+            <span class="stack-name">{{ stackName }}</span>
+            <span v-if="hasImageUpdate" class="image-update-dot" role="status" aria-label="Image update available" title="Image update available"></span>
         </div>
     </router-link>
 </template>
@@ -19,6 +20,10 @@ export default {
         stack: {
             type: Object,
             default: null,
+        },
+        hasImageUpdate: {
+            type: Boolean,
+            default: false,
         },
         /** If the user is in select mode */
         isSelectMode: {
@@ -148,6 +153,9 @@ export default {
         background-color: #cdf8f4;
     }
     .title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
         margin-top: -4px;
     }
     .endpoint {
@@ -158,6 +166,15 @@ export default {
             color: $dark-font-color3;
         }
     }
+}
+
+.image-update-dot {
+    flex: 0 0 9px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #fd7e14;
+    box-shadow: 0 0 0 3px rgba(253, 126, 20, 0.18);
 }
 
 .collapsed {
@@ -195,7 +212,8 @@ export default {
             font-size: 17px;
             font-weight: 400;
 
-            span {
+            .stack-name {
+                min-width: 0;
                 display: block;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -244,7 +262,8 @@ export default {
             font-weight: 500;
             line-height: 1.25;
 
-            span {
+            .stack-name {
+                min-width: 0;
                 display: block;
                 overflow: hidden;
                 text-overflow: ellipsis;

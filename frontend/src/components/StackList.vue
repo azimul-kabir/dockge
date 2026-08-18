@@ -10,16 +10,18 @@
                     {{ $t("Select") }}
                 </button>
 
-                <div class="bulk-image-actions">
-                    <button class="btn btn-outline-normal" type="button" :disabled="checkingAllImages || updatingAllImages" @click="checkAllImages">
-                        <font-awesome-icon icon="arrows-rotate" class="me-1" />
-                        {{ checkingAllImages ? "Checking…" : "Check all images" }}
-                    </button>
-                    <button class="btn btn-primary" type="button" :disabled="checkingAllImages || updatingAllImages || updateTargetCount === 0" @click="updateAllImages">
-                        <font-awesome-icon icon="cloud-arrow-down" class="me-1" />
-                        {{ updatingAllImages ? "Updating…" : `Update all (${updateTargetCount})` }}
-                    </button>
-                </div>
+                <Teleport to="#desktop-image-actions" :disabled="$root.isMobile">
+                    <div class="bulk-image-actions">
+                        <button class="btn btn-outline-normal" type="button" :disabled="checkingAllImages || updatingAllImages" @click="checkAllImages">
+                            <font-awesome-icon icon="arrows-rotate" class="me-1" />
+                            {{ checkingAllImages ? "Checking…" : "Check all images" }}
+                        </button>
+                        <button class="btn btn-primary" type="button" :disabled="checkingAllImages || updatingAllImages || updateTargetCount === 0" @click="updateAllImages">
+                            <font-awesome-icon icon="cloud-arrow-down" class="me-1" />
+                            {{ updatingAllImages ? "Updating…" : `Update all (${updateTargetCount})` }}
+                        </button>
+                    </div>
+                </Teleport>
                 <div class="search-wrapper">
                     <a v-if="searchText == ''" class="search-icon">
                         <font-awesome-icon icon="search" />
@@ -75,7 +77,7 @@
                 <StackListItem
                     v-for="(item, index) in agent.stacks"
                     v-show="$root.agentCount === 1 || !closedAgents.get(agent.endpoint)" :key="index" :stack="item" :isSelectMode="selectMode"
-                    :isSelected="isSelected" :select="select" :deselect="deselect"
+                    :isSelected="isSelected" :select="select" :deselect="deselect" :has-image-update="hasImageUpdate(item)"
                     @stack-selected="$emit('stack-selected', $event)"
                 />
             </div>
@@ -85,6 +87,30 @@
     <Confirm ref="confirmPause" :yes-text="$t('Yes')" :no-text="$t('No')" @yes="pauseSelected">
         {{ $t("pauseStackMsg") }}
     </Confirm>
+
+    <BModal v-model="showCheckReport" title="Image update check report" ok-only>
+        <p class="mb-3">
+            Checked {{ checkedStackCount }} managed stack(s). Found updates for {{ updateTargetCount }} stack(s), with {{ failedImageChecks.length }} failed check(s).
+        </p>
+
+        <h6>Updates available</h6>
+        <ul v-if="availableImageUpdates.length > 0" class="check-report-list">
+            <li v-for="stack in availableImageUpdates" :key="stackUpdateKey(stack)">
+                <span class="report-update-dot"></span>
+                {{ stackReportLabel(stack) }}
+            </li>
+        </ul>
+        <p v-else class="text-muted">No image updates are available.</p>
+
+        <h6 class="mt-4">Failed checks</h6>
+        <ul v-if="failedImageChecks.length > 0" class="check-report-list failed-checks">
+            <li v-for="failure in failedImageChecks" :key="stackUpdateKey(failure.stack)">
+                <strong>{{ stackReportLabel(failure.stack) }}</strong>
+                <span>{{ failure.message }}</span>
+            </li>
+        </ul>
+        <p v-else class="text-muted">All image checks completed successfully.</p>
+    </BModal>
 </template>
 
 <script>
@@ -120,6 +146,9 @@ export default {
             checkingAllImages: false,
             updatingAllImages: false,
             imageUpdateTargets: {},
+            failedImageChecks: [],
+            checkedStackCount: 0,
+            showCheckReport: false,
         };
     },
     computed: {
@@ -233,6 +262,10 @@ export default {
             return Object.keys(this.imageUpdateTargets).length;
         },
 
+        availableImageUpdates() {
+            return Object.values(this.imageUpdateTargets);
+        },
+
         /**
          * Determines if any filters are active.
          * @returns {boolean} True if any filter is active, false otherwise.
@@ -280,6 +313,12 @@ export default {
         stackUpdateKey(stack) {
             return `${stack.endpoint || ""}::${stack.name}`;
         },
+        stackReportLabel(stack) {
+            return stack.endpoint ? `${stack.name} (${stack.endpoint})` : stack.name;
+        },
+        hasImageUpdate(stack) {
+            return this.stackUpdateKey(stack) in this.imageUpdateTargets;
+        },
         emitAgentAsync(endpoint, eventName, stackName) {
             return new Promise(resolve => {
                 this.$root.emitAgent(endpoint || "", eventName, stackName, resolve);
@@ -288,13 +327,20 @@ export default {
         async checkAllImages() {
             this.checkingAllImages = true;
             this.imageUpdateTargets = {};
+            this.failedImageChecks = [];
+            const managedStacks = this.getManagedStacks();
+            this.checkedStackCount = managedStacks.length;
             let failed = 0;
 
             try {
-                for (const stack of this.getManagedStacks()) {
+                for (const stack of managedStacks) {
                     const res = await this.emitAgentAsync(stack.endpoint, "checkImages", stack.name);
                     if (!res?.ok) {
                         failed++;
+                        this.failedImageChecks.push({
+                            stack,
+                            message: res?.msg || "Image check failed.",
+                        });
                         continue;
                     }
 
@@ -313,6 +359,7 @@ export default {
                 }
             } finally {
                 this.checkingAllImages = false;
+                this.showCheckReport = true;
             }
         },
         async updateAllImages() {
@@ -462,6 +509,37 @@ export default {
     display: flex;
     gap: 0.5rem;
     margin-right: auto;
+
+    .btn {
+        white-space: nowrap;
+    }
+}
+
+.check-report-list {
+    margin-bottom: 0;
+    padding-left: 0;
+    list-style: none;
+
+    li {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.35rem 0;
+    }
+}
+
+.report-update-dot {
+    flex: 0 0 9px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #fd7e14;
+}
+
+.failed-checks li {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.1rem;
 }
 
 .header-filter {
