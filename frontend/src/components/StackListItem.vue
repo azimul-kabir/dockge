@@ -153,7 +153,8 @@ export default {
         background-color: #cdf8f4;
     }
     .title {
-        display: flex;
+        // Override the legacy global .stack-list .item .title rule.
+        display: flex !important;
         align-items: center;
         gap: 0.5rem;
         margin-top: -4px;
@@ -254,7 +255,8 @@ export default {
         }
 
         .title {
-            display: block;
+            display: flex !important;
+            align-items: center;
             flex: 1 1 auto;
             min-width: 0;
             margin-top: 0;

@@ -170,6 +170,30 @@ export default {
     align-items: center;
 }
 
+@media (max-width: 767.98px) {
+    header .nav {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .desktop-image-actions {
+        flex: 0 0 100%;
+        justify-content: center;
+        margin-right: 0 !important;
+        margin-bottom: 0.75rem;
+
+        :deep(.bulk-image-actions) {
+            justify-content: center;
+            width: auto;
+            margin: 0;
+
+            .btn {
+                flex: 0 0 auto;
+            }
+        }
+    }
+}
+
 .bottom-nav {
     z-index: 1000;
     position: fixed;
