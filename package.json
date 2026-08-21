@@ -1,6 +1,15 @@
 {
     "name": "dockge",
     "version": "2.0.0",
+    "description": "Dockge Next, a fork of the original Dockge project, modified and maintained by Azimul Kabir",
+    "homepage": "https://github.com/azimul-kabir/dockge",
+    "author": "Azimul Kabir <azimul.kabir123@gmail.com> (https://github.com/azimul-kabir)",
+    "license": "MIT",
+    "x-upstream": "https://github.com/louislam/dockge",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/azimul-kabir/dockge.git"
+    },
     "type": "module",
     "engines": {
         "node": ">= 22.14.0"
@@ -17,11 +26,11 @@
         "release-beta": "tsx ./extra/test-docker.ts && tsx extra/update-version.ts && npm run build:frontend && npm run build:docker-beta",
         "build:frontend": "vite build --config ./frontend/vite.config.ts",
         "build:docker-base": "docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t louislam/dockge:base -f ./docker/Base.Dockerfile . --push",
-        "build:docker": "node ./extra/env2arg.js docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t louislam/dockge:latest -t louislam/dockge:1 -t louislam/dockge:$VERSION -t louislam/dockge:beta -t louislam/dockge:nightly --target release -f ./docker/Dockerfile . --push",
-        "build:docker-beta": "node ./extra/env2arg.js docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t louislam/dockge:beta -t louislam/dockge:$VERSION --target release -f ./docker/Dockerfile . --push",
+        "build:docker": "node ./extra/env2arg.js docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t ghcr.io/azimul-kabir/dockge:latest -t ghcr.io/azimul-kabir/dockge:$VERSION --target release -f ./docker/Dockerfile . --push",
+        "build:docker-beta": "node ./extra/env2arg.js docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t ghcr.io/azimul-kabir/dockge:beta -t ghcr.io/azimul-kabir/dockge:$VERSION --target release -f ./docker/Dockerfile . --push",
         "build:healthcheck": "docker buildx build -f docker/BuildHealthCheck.Dockerfile --platform linux/amd64,linux/arm64,linux/arm/v7 -t louislam/dockge:build-healthcheck . --push",
         "release-nightly": "npm run build:frontend && docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t louislam/dockge:nightly -t ghcr.io/louislam/dockge:nightly --target nightly -f ./docker/Dockerfile . --push",
-        "start-docker": "docker run --rm -p 5001:5001 --name dockge louislam/dockge:latest",
+        "start-docker": "docker run --rm -p 5001:5001 --name dockge ghcr.io/azimul-kabir/dockge:latest",
         "mark-as-nightly": "tsx ./extra/mark-as-nightly.ts",
         "reformat-changelog": "tsx ./extra/reformat-changelog.ts",
         "reset-password": "tsx ./extra/reset-password.ts"

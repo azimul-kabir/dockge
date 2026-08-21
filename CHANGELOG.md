@@ -2,6 +2,14 @@
 
 All notable changes to this fork are documented here.
 
+## Unreleased
+
+### Changed
+
+- Branded the web interface and installable app as Dockge Next.
+- Added maintainer attribution and links for Azimul Kabir to the About page.
+- Published canonical GHCR images as `ghcr.io/azimul-kabir/dockge` with a `dockge-next` package alias.
+
 ## [2.0.0] - 2026-08-22
 
 Dockge V2 is modified and maintained by [Azimul Kabir](https://github.com/azimul-kabir), based on the original [Dockge](https://github.com/louislam/dockge) project.

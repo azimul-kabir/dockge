@@ -1,6 +1,7 @@
 {
-    "name": "Dockge",
-    "short_name": "Dockge",
+    "name": "Dockge Next",
+    "short_name": "Dockge Next",
+    "description": "A fork of the original Dockge project, modified and maintained by Azimul Kabir",
     "start_url": "/",
     "background_color": "#fff",
     "display": "standalone",

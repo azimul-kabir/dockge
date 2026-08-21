@@ -5,7 +5,10 @@
                 <div>
                     <object width="64" height="64" data="/icon.svg" />
                     <div style="font-size: 28px; font-weight: bold; margin-top: 5px;">
-                        Dockge
+                        Dockge Next
+                    </div>
+                    <div class="small text-muted mt-1">
+                        A fork of <a href="https://github.com/louislam/dockge" target="_blank" rel="noopener noreferrer">Dockge</a>
                     </div>
                 </div>
 

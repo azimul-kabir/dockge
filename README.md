@@ -2,13 +2,13 @@
     <img src="./frontend/public/icon.svg" width="128" alt="" />
 </div>
 
-# Dockge
+# Dockge Next
 
 A fancy, easy-to-use and reactive self-hosted docker compose.yaml stack-oriented manager.
 
-> Dockge V2 is modified and maintained by [Azimul Kabir](https://github.com/azimul-kabir), based on the original [Dockge](https://github.com/louislam/dockge) project.
+> Dockge Next is a fork of the original [Dockge repository](https://github.com/louislam/dockge). This fork is modified and maintained by [Azimul Kabir](https://github.com/azimul-kabir).
 
-[![Release](https://img.shields.io/github/v/release/azimul-kabir/dockge?logo=github)](https://github.com/azimul-kabir/dockge/releases) [![Container](https://img.shields.io/badge/GHCR-dockge--v2-blue?logo=docker)](https://github.com/azimul-kabir/dockge/pkgs/container/dockge-v2)
+[![Release](https://img.shields.io/github/v/release/azimul-kabir/dockge?logo=github)](https://github.com/azimul-kabir/dockge/releases) [![Container](https://img.shields.io/badge/GHCR-dockge-blue?logo=docker)](https://github.com/azimul-kabir/dockge/pkgs/container/dockge)
 
 [![GitHub Repo stars](https://img.shields.io/github/stars/louislam/dockge?logo=github&style=flat)](https://github.com/louislam/dockge) [![Docker Pulls](https://img.shields.io/docker/pulls/louislam/dockge?logo=docker)](https://hub.docker.com/r/louislam/dockge/tags) [![Docker Image Version (latest semver)](https://img.shields.io/docker/v/louislam/dockge/latest?label=docker%20image%20ver.)](https://hub.docker.com/r/louislam/dockge/tags) [![GitHub last commit (branch)](https://img.shields.io/github/last-commit/louislam/dockge/master?logo=github)](https://github.com/louislam/dockge/commits/master/)
 
@@ -113,7 +113,7 @@ compose:
 ```
 services:
   dockge:
-    image: ghcr.io/azimul-kabir/dockge-v2:2.0.0
+    image: ghcr.io/azimul-kabir/dockge:2.0.0
     restart: unless-stopped
     ports:
       # Host Port:Container Port

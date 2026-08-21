@@ -1,13 +1,15 @@
 # Synology deployment from GHCR
 
-The current stable production image is `ghcr.io/azimul-kabir/dockge-v2:2.0.0`.
+Dockge Next is a fork of the original [Dockge repository](https://github.com/louislam/dockge), modified and maintained by [Azimul Kabir](https://github.com/azimul-kabir).
+
+The current stable production image is `ghcr.io/azimul-kabir/dockge:2.0.0`.
 The moving `latest` tag is also available. The image contains a
 multi-platform manifest for `linux/amd64` and `linux/arm64`; Docker selects the
 DS220+ compatible `amd64` image automatically.
 
 ## One-time GitHub package setup
 
-Run the **Publish Dockge V2 image** workflow once. After its first successful
+Run the **Publish Dockge Next image** workflow once. After its first successful
 publish, open the GitHub package page, choose **Package settings**, scroll to
 **Danger Zone**, select **Change visibility**, choose **Public**, and confirm.
 Public visibility allows the NAS to pull without a GHCR login. The publishing
@@ -19,7 +21,7 @@ additional repository secret is required.
 ```yaml
 services:
   dockge:
-    image: ghcr.io/azimul-kabir/dockge-v2:2.0.0
+    image: ghcr.io/azimul-kabir/dockge:2.0.0
     container_name: dockge
     restart: unless-stopped
 
@@ -81,7 +83,7 @@ docker image prune -f
    the current test image/container configuration available until these checks
    pass.
 5. In the production stack on port `5050`, replace only `image:` with
-   `ghcr.io/azimul-kabir/dockge-v2:latest` and preserve all volumes and
+   `ghcr.io/azimul-kabir/dockge:latest` and preserve all volumes and
    environment values.
 6. Run `docker compose up -d` to recreate the production container, then run the
    verification commands above.

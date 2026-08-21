@@ -1,7 +1,12 @@
-name: Publish Dockge V2 image
+name: Publish Dockge Next image
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: Optional additional image tag, for example 2.0.0
+        required: false
+        type: string
   push:
     branches:
       - dockge-next
@@ -52,16 +57,21 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/azimul-kabir/dockge-v2
+          images: |
+            ghcr.io/azimul-kabir/dockge
+            ghcr.io/azimul-kabir/dockge-next
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/dockge-next' || startsWith(github.ref, 'refs/tags/v') }}
             type=raw,value=dockge-next,enable=${{ github.ref == 'refs/heads/dockge-next' }}
+            type=raw,value=${{ inputs.version }},enable=${{ inputs.version != '' }}
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=sha,prefix=sha-
           labels: |
-            org.opencontainers.image.title=Dockge V2
-            org.opencontainers.image.description=Dockge V2 redesign production image
+            org.opencontainers.image.title=Dockge Next
+            org.opencontainers.image.description=Dockge Next, a fork of the original Dockge project
+            org.opencontainers.image.source=https://github.com/azimul-kabir/dockge
+            org.opencontainers.image.authors=Azimul Kabir https://github.com/azimul-kabir
 
       - name: Build and push image
         uses: docker/build-push-action@v6

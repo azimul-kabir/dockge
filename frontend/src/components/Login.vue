@@ -2,7 +2,11 @@
     <div class="form-container">
         <div class="form">
             <form @submit.prevent="submit">
-                <h1 class="h3 mb-3 fw-normal" />
+                <object width="64" height="64" data="/icon.svg" />
+                <h1 class="h3 mt-2 mb-0 fw-bold">Dockge Next</h1>
+                <p class="small text-muted mb-3">
+                    A fork of <a href="https://github.com/louislam/dockge" target="_blank" rel="noopener noreferrer">Dockge</a>
+                </p>
 
                 <div v-if="!tokenRequired" class="form-floating">
                     <input id="floatingInput" v-model="username" type="text" class="form-control" placeholder="Username" autocomplete="username" required>

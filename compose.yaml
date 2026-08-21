@@ -1,6 +1,6 @@
 services:
   dockge:
-    image: ghcr.io/azimul-kabir/dockge-v2:2.0.0
+    image: ghcr.io/azimul-kabir/dockge:2.0.0
     restart: unless-stopped
     ports:
       # Host Port : Container Port
