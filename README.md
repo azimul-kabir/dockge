@@ -6,6 +6,10 @@
 
 A fancy, easy-to-use and reactive self-hosted docker compose.yaml stack-oriented manager.
 
+> Dockge V2 is modified and maintained by [Azimul Kabir](https://github.com/azimul-kabir), based on the original [Dockge](https://github.com/louislam/dockge) project.
+
+[![Release](https://img.shields.io/github/v/release/azimul-kabir/dockge?logo=github)](https://github.com/azimul-kabir/dockge/releases) [![Container](https://img.shields.io/badge/GHCR-dockge--v2-blue?logo=docker)](https://github.com/azimul-kabir/dockge/pkgs/container/dockge-v2)
+
 [![GitHub Repo stars](https://img.shields.io/github/stars/louislam/dockge?logo=github&style=flat)](https://github.com/louislam/dockge) [![Docker Pulls](https://img.shields.io/docker/pulls/louislam/dockge?logo=docker)](https://hub.docker.com/r/louislam/dockge/tags) [![Docker Image Version (latest semver)](https://img.shields.io/docker/v/louislam/dockge/latest?label=docker%20image%20ver.)](https://hub.docker.com/r/louislam/dockge/tags) [![GitHub last commit (branch)](https://img.shields.io/github/last-commit/louislam/dockge/master?logo=github)](https://github.com/louislam/dockge/commits/master/)
 
 <img src="https://github.com/louislam/dockge/assets/1336778/26a583e1-ecb1-4a8d-aedf-76157d714ad7" width="900" alt="" />
@@ -13,6 +17,14 @@ A fancy, easy-to-use and reactive self-hosted docker compose.yaml stack-oriented
 View Video: https://youtu.be/AWAlOQeNpgU?t=48
 
 ## ⭐ Features
+
+### Dockge V2 additions
+
+- Configurable automatic Docker image update checks and bulk image updates
+- Stack configuration history with readable change summaries
+- Compose override file editing and fullscreen compose/environment editors
+- Environment-variable usage intelligence
+- Refined responsive UI, mobile actions, navigation, and update indicators
 
 - 🧑‍💼 Manage your `compose.yaml` files
   - Create/Edit/Start/Stop/Restart/Delete
@@ -58,7 +70,7 @@ mkdir -p /opt/stacks /opt/dockge
 cd /opt/dockge
 
 # Download the compose.yaml
-curl https://raw.githubusercontent.com/louislam/dockge/master/compose.yaml --output compose.yaml
+curl https://raw.githubusercontent.com/azimul-kabir/dockge/dockge-next/compose.yaml --output compose.yaml
 
 # Start the server
 docker compose up -d
@@ -101,7 +113,7 @@ compose:
 ```
 services:
   dockge:
-    image: louislam/dockge:1
+    image: ghcr.io/azimul-kabir/dockge-v2:2.0.0
     restart: unless-stopped
     ports:
       # Host Port:Container Port
@@ -133,6 +145,8 @@ services:
 cd /opt/dockge
 docker compose pull && docker compose up -d
 ```
+
+See the [Dockge V2 changelog](CHANGELOG.md) for release details and [Synology deployment guide](docs/synology-ghcr.md) for NAS-specific instructions.
 
 ## Screenshots
 

@@ -1,6 +1,7 @@
 # Synology deployment from GHCR
 
-The production image is `ghcr.io/azimul-kabir/dockge-v2:latest`. It contains a
+The current stable production image is `ghcr.io/azimul-kabir/dockge-v2:2.0.0`.
+The moving `latest` tag is also available. The image contains a
 multi-platform manifest for `linux/amd64` and `linux/arm64`; Docker selects the
 DS220+ compatible `amd64` image automatically.
 
@@ -18,7 +19,7 @@ additional repository secret is required.
 ```yaml
 services:
   dockge:
-    image: ghcr.io/azimul-kabir/dockge-v2:latest
+    image: ghcr.io/azimul-kabir/dockge-v2:2.0.0
     container_name: dockge
     restart: unless-stopped
 

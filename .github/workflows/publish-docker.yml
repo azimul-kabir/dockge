@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - ui-redesign-v2
+      - dockge-next
     tags:
       - "v*"
 
@@ -54,8 +54,8 @@ jobs:
         with:
           images: ghcr.io/azimul-kabir/dockge-v2
           tags: |
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/ui-redesign-v2' || startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=ui-redesign-v2,enable=${{ github.ref == 'refs/heads/ui-redesign-v2' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/dockge-next' || startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=dockge-next,enable=${{ github.ref == 'refs/heads/dockge-next' }}
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=sha,prefix=sha-
