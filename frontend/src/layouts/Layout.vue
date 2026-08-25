@@ -10,7 +10,7 @@
         </div>
 
         <!-- Desktop header -->
-        <header v-if="! $root.isMobile" class="d-flex flex-wrap justify-content-center py-3 mb-3 border-bottom">
+        <header v-if="! $root.isMobile" class="desktop-header d-flex flex-wrap justify-content-center border-bottom">
             <router-link to="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
                 <object class="bi me-2 ms-4" width="40" height="40" data="/icon.svg" />
                 <span class="brand-lockup">
@@ -24,12 +24,13 @@
             </a>
 
             <ul class="nav nav-pills">
-                <li v-if="$root.loggedIn" id="desktop-image-actions" class="nav-item me-3 desktop-image-actions"></li>
                 <li v-if="$root.loggedIn" class="nav-item me-2">
                     <router-link to="/" class="nav-link">
                         <font-awesome-icon icon="home" /> {{ $t("home") }}
                     </router-link>
                 </li>
+
+                <li v-if="$root.loggedIn" id="desktop-image-actions" class="nav-item me-2 desktop-image-actions"></li>
 
                 <li v-if="$root.loggedIn" class="nav-item me-2">
                     <router-link to="/console" class="nav-link">
@@ -253,7 +254,31 @@ main {
 }
 
 .nav {
-    margin-right: 25px;
+    align-items: center;
+    margin-right: 16px;
+}
+
+.desktop-header {
+    align-items: center;
+    min-height: 58px;
+    margin-bottom: 8px;
+    padding: 6px 0;
+
+    .nav-link {
+        padding: 0.4rem 0.65rem;
+        font-size: 0.875rem;
+    }
+
+    :deep(.bulk-image-actions) {
+        gap: 0.4rem;
+        margin: 0;
+
+        .btn {
+            padding: 0.38rem 0.65rem;
+            font-size: 0.82rem;
+            white-space: nowrap;
+        }
+    }
 }
 
 .lost-connection {

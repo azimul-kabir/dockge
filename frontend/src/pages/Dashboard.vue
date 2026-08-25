@@ -67,14 +67,14 @@ export default {
 .container-fluid {
     width: 100%;
     max-width: 100%;
-    padding-right: max(12px, env(safe-area-inset-right));
-    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(8px, env(safe-area-inset-right));
+    padding-left: max(8px, env(safe-area-inset-left));
 }
 
 .dashboard-shell {
     display: grid;
-    grid-template-columns: clamp(280px, 22vw, 320px) minmax(0, 1fr);
-    gap: 24px;
+    grid-template-columns: clamp(220px, 18vw, 260px) minmax(0, 1fr);
+    gap: 12px;
     width: 100%;
     min-width: 0;
 }
@@ -94,8 +94,8 @@ export default {
     width: 100%;
     min-width: 0;
     max-width: 100%;
-    padding-right: calc(var(--bs-gutter-x) * 0.5);
-    padding-left: calc(var(--bs-gutter-x) * 0.5);
+    padding-right: 6px;
+    padding-left: 6px;
 }
 
 @media (max-width: 767.98px) {

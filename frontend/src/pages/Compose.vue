@@ -113,6 +113,41 @@
                 </a>
             </div>
 
+            <section v-if="stack.isManagedByDockge && !isAdd && !isEditMode" class="service-summary" aria-labelledby="service-summary-heading">
+                <div class="service-summary-title">
+                    <h2 id="service-summary-heading">{{ $tc("container", serviceRows.length) }}</h2>
+                    <span>{{ serviceRows.length }}</span>
+                </div>
+                <div class="service-table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Service</th>
+                                <th>Image</th>
+                                <th>State</th>
+                                <th>Uptime</th>
+                                <th>Ports</th>
+                                <th>CPU</th>
+                                <th>Memory</th>
+                                <th>Network I/O</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="row in serviceRows" :key="row.name">
+                                <td><span class="service-dot" :class="row.stateClass"></span><strong>{{ row.name }}</strong></td>
+                                <td class="mono muted">{{ row.image }}</td>
+                                <td><span class="service-state" :class="row.stateClass">{{ row.state }}</span></td>
+                                <td class="mono">{{ row.uptime }}</td>
+                                <td class="mono ports"><span v-for="port in row.ports" :key="port">{{ port }}</span><span v-if="row.ports.length === 0">—</span></td>
+                                <td class="mono">{{ row.cpu }}</td>
+                                <td class="mono">{{ row.memory }}</td>
+                                <td class="mono">{{ row.network }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
             <div v-if="stack.isManagedByDockge" class="stack-workspace">
                 <div class="runtime-row">
                     <section class="stack-section" aria-labelledby="overview-heading">
@@ -142,7 +177,7 @@
                         </div>
 
                         <!-- Containers -->
-                        <h4 class="mb-3">{{ $tc("container", 2) }}</h4>
+                        <h4 v-if="isEditMode || isAdd" class="mb-3">{{ $tc("container", 2) }}</h4>
 
                         <div v-if="isEditMode" class="input-group mb-3">
                             <input
@@ -156,7 +191,7 @@
                             </button>
                         </div>
 
-                        <div ref="containerList">
+                        <div v-if="isEditMode || isAdd" ref="containerList">
                             <Container
                                 v-for="(service, name) in jsonConfig.services"
                                 :key="name"
@@ -310,7 +345,7 @@
                     </div>
                 </section>
 
-                <section ref="environmentSection" class="stack-section" :class="{ 'editor-fullscreen-section': fullscreenEditor === 'environment' }" aria-labelledby="environment-heading">
+                <section v-if="isEditMode" ref="environmentSection" class="stack-section" :class="{ 'editor-fullscreen-section': fullscreenEditor === 'environment' }" aria-labelledby="environment-heading">
                     <div class="stack-section-heading editor-heading">
                         <h2 id="environment-heading">Environment</h2>
                         <div class="editor-heading-actions">
@@ -397,7 +432,7 @@
                     </div>
                 </section>
 
-                <section class="stack-section" aria-labelledby="networks-heading">
+                <section v-if="isEditMode" class="stack-section" aria-labelledby="networks-heading">
                     <h2 id="networks-heading" class="stack-section-heading">Networks</h2>
 
                     <!-- Volumes -->
@@ -588,6 +623,35 @@ export default {
 
         usesEnvFile() {
             return composeUsesEnvFile(this.stack.composeYAML || "");
+        },
+
+        serviceRows() {
+            return Object.keys(this.jsonConfig.services || {}).map((name) => {
+                const instances = this.serviceStatusList[name] || [];
+                const instance = instances[0] || {};
+                const stat = instances.map((item) => this.dockerStats[item.name]).find(Boolean) || {};
+                const configuredImage = this.envsubstJSONConfig.services?.[name]?.image;
+                const state = instance.status || "inactive";
+                const stateClass = [ "running", "healthy" ].includes(state) ? "active" : state === "unhealthy" ? "danger" : "inactive";
+                const ports = (instance.publishers || []).map((publisher) => {
+                    const target = publisher.TargetPort || "";
+                    const published = publisher.PublishedPort;
+                    const protocol = publisher.Protocol ? `/${publisher.Protocol}` : "";
+                    return published ? `${published}→${target}${protocol}` : `${target}${protocol}`;
+                }).filter(Boolean);
+
+                return {
+                    name,
+                    image: instance.image || configuredImage || "—",
+                    state,
+                    stateClass,
+                    uptime: instance.runningFor || "—",
+                    ports,
+                    cpu: stat.CPUPerc || "—",
+                    memory: stat.MemUsage || "—",
+                    network: stat.NetIO || "—",
+                };
+            });
         },
 
         endpointDisplay() {
@@ -1373,9 +1437,135 @@ export default {
 }
 
 @media (min-width: 768px) {
-    .combined-terminal {
-        height: clamp(280px, 35vh, 340px);
+    .stack-title {
+        margin-bottom: 0.65rem !important;
+        font-size: 1.65rem;
     }
+
+    .stack-actions {
+        margin-bottom: 0.75rem !important;
+
+        .btn {
+            padding: 0.35rem 0.6rem;
+            font-size: 0.8rem;
+        }
+    }
+
+    .combined-terminal {
+        height: clamp(240px, 30vh, 300px);
+    }
+}
+
+.service-summary {
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 0.85rem;
+    overflow: hidden;
+    border: 1px solid #adb5bd;
+    border-radius: 7px;
+}
+
+.service-summary-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    padding: 0.38rem 0.65rem;
+    border-bottom: 1px solid #adb5bd;
+
+    h2 {
+        margin: 0;
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.045em;
+        text-transform: uppercase;
+    }
+
+    span {
+        color: #6c757d;
+        font-size: 0.72rem;
+    }
+}
+
+.service-table-wrap {
+    overflow-x: auto;
+}
+
+.service-summary table {
+    width: 100%;
+    min-width: 860px;
+    border-collapse: collapse;
+}
+
+.service-summary th {
+    padding: 0.32rem 0.45rem;
+    border-bottom: 1px solid #adb5bd;
+    color: #6c757d;
+    font-size: 0.66rem;
+    letter-spacing: 0.035em;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.service-summary td {
+    padding: 0.38rem 0.45rem;
+    border-bottom: 1px solid rgba(127, 127, 127, 0.22);
+    font-size: 0.74rem;
+    line-height: 1.2;
+    vertical-align: middle;
+}
+
+.service-summary tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.service-summary .mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+}
+
+.service-summary .muted {
+    max-width: 240px;
+    overflow: hidden;
+    color: #6c757d;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.service-dot {
+    display: inline-block;
+    width: 0.48rem;
+    height: 0.48rem;
+    margin-right: 0.45rem;
+    border-radius: 50%;
+    background: #6c757d;
+
+    &.active { background: #198754; }
+    &.danger { background: #dc3545; }
+}
+
+.service-state {
+    display: inline-block;
+    padding: 0.16rem 0.38rem;
+    border-radius: 0.25rem;
+    background: rgba(108, 117, 125, 0.13);
+    font-size: 0.66rem;
+    font-weight: 700;
+
+    &.active {
+        background: rgba(25, 135, 84, 0.14);
+        color: #198754;
+    }
+
+    &.danger {
+        background: rgba(220, 53, 69, 0.14);
+        color: #dc3545;
+    }
+}
+
+.ports span {
+    display: block;
+    white-space: nowrap;
 }
 
 .stack-workspace {
@@ -1412,14 +1602,14 @@ export default {
     width: 100%;
     min-width: 0;
     padding-top: 0.25rem;
-    margin-bottom: 2.5rem;
+    margin-bottom: 1.35rem;
 }
 
 .stack-section-heading {
-    padding-bottom: 0.65rem;
-    margin-bottom: 1.25rem;
+    padding-bottom: 0.4rem;
+    margin-bottom: 0.75rem;
     border-bottom: 1px solid #ced4da;
-    font-size: 1.35rem;
+    font-size: 1.05rem;
 
     .dark & {
         border-bottom-color: rgba(127, 127, 127, 0.25);
