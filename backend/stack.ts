@@ -522,13 +522,24 @@ export class Stack {
 
             let lines = res.stdout?.toString().split("\n");
 
-            const addLine = (obj: { Service: string, State: string, Name: string, Health: string }) => {
+            const addLine = (obj: {
+                Service: string;
+                State: string;
+                Name: string;
+                Health: string;
+                Image?: string;
+                RunningFor?: string;
+                Publishers?: Array<{ PublishedPort?: number; TargetPort?: number; Protocol?: string; URL?: string }>;
+            }) => {
                 if (!statusList.has(obj.Service)) {
                     statusList.set(obj.Service, []);
                 }
                 statusList.get(obj.Service)?.push({
                     status: obj.Health || obj.State,
-                    name: obj.Name
+                    name: obj.Name,
+                    image: obj.Image || "",
+                    runningFor: obj.RunningFor || "",
+                    publishers: obj.Publishers || [],
                 });
             };
 

@@ -10,7 +10,7 @@
         </div>
 
         <!-- Desktop header -->
-        <header v-if="! $root.isMobile" class="d-flex flex-wrap justify-content-center py-3 mb-3 border-bottom">
+        <header v-if="! $root.isMobile" class="desktop-header d-flex flex-wrap justify-content-center border-bottom">
             <router-link to="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
                 <object class="bi me-2 ms-4" width="40" height="40" data="/icon.svg" />
                 <span class="fs-4 title">Dockge</span>
@@ -25,6 +25,18 @@
                     <router-link to="/" class="nav-link">
                         <font-awesome-icon icon="home" /> {{ $t("home") }}
                     </router-link>
+                </li>
+
+                <li v-if="$root.loggedIn" class="nav-item me-2">
+                    <button class="nav-link bulk-action" :disabled="bulkActionRunning" @click="checkAllImages">
+                        <font-awesome-icon icon="arrows-rotate" /> {{ $t("checkAllImages") }}
+                    </button>
+                </li>
+
+                <li v-if="$root.loggedIn" class="nav-item me-2">
+                    <button class="nav-link bulk-action" :disabled="bulkActionRunning || managedStacks.length === 0" @click="updateAllStacks">
+                        <font-awesome-icon icon="cloud-arrow-down" /> {{ $t("updateAll") }} ({{ managedStacks.length }})
+                    </button>
                 </li>
 
                 <li v-if="$root.loggedIn" class="nav-item me-2">
@@ -108,7 +120,7 @@ export default {
 
     data() {
         return {
-
+            bulkActionRunning: false,
         };
     },
 
@@ -130,6 +142,10 @@ export default {
             }
         },
 
+        managedStacks() {
+            return Object.values(this.$root.completeStackList).filter((stack) => stack.isManagedByDockge !== false);
+        },
+
     },
 
     watch: {
@@ -145,6 +161,29 @@ export default {
     },
 
     methods: {
+        checkAllImages() {
+            this.bulkActionRunning = true;
+            this.$root.emitAgent(ALL_ENDPOINTS, "requestStackList", (res) => {
+                this.bulkActionRunning = false;
+                this.$root.toastRes(res);
+            });
+        },
+
+        async updateAllStacks() {
+            this.bulkActionRunning = true;
+
+            for (const stack of this.managedStacks) {
+                await new Promise((resolve) => {
+                    this.$root.emitAgent(stack.endpoint || "", "updateStack", stack.name, (res) => {
+                        this.$root.toastRes(res);
+                        resolve();
+                    });
+                });
+            }
+
+            this.bulkActionRunning = false;
+        },
+
         scanFolder() {
             this.$root.emitAgent(ALL_ENDPOINTS, "requestStackList", (res) => {
                 this.$root.toastRes(res);
@@ -162,6 +201,11 @@ export default {
     &.status-page {
         background-color: rgba(255, 255, 255, 0.1);
     }
+}
+
+.bulk-action {
+    border: 0;
+    white-space: nowrap;
 }
 
 .bottom-nav {
@@ -208,7 +252,19 @@ main {
 }
 
 .nav {
-    margin-right: 25px;
+    margin-right: 16px;
+}
+
+.desktop-header {
+    align-items: center;
+    min-height: 64px;
+    margin-bottom: 10px;
+    padding: 8px 0;
+
+    .nav-link {
+        padding: 7px 10px;
+        font-size: 0.875rem;
+    }
 }
 
 .lost-connection {

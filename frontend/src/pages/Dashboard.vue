@@ -44,9 +44,9 @@ export default {
 
 .dashboard-shell {
     display: grid;
-    grid-template-columns: 260px minmax(0, 1fr);
-    gap: 16px;
-    width: calc(100% - 32px);
+    grid-template-columns: 230px minmax(0, 1fr);
+    gap: 10px;
+    width: calc(100% - 20px);
     max-width: 1920px;
     margin: 0 auto;
 }
@@ -54,7 +54,7 @@ export default {
 .stack-sidebar {
     position: sticky;
     top: 8px;
-    height: calc(100dvh - 112px);
+    height: calc(100dvh - 84px);
     min-width: 0;
     overflow: hidden;
 }
