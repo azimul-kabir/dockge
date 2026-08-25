@@ -11,20 +11,29 @@
 
             <template v-if="stack.isManagedByDockge">
                 <nav v-if="!$root.isMobile" class="workspace-tabs" aria-label="Stack workspace"><button v-for="tab in desktopTabs" :key="tab.id" :class="{ active: activeWorkspace === tab.id }" @click="selectWorkspace(tab.id)">{{ tab.label }}</button><span v-if="isDirty" class="dirty-indicator">●</span></nav>
-                <div v-if="$root.isMobile && mobileView === 'config'" class="mobile-config-selector"><label for="config-workspace">Config</label><select id="config-workspace" v-model="configWorkspace" class="form-select" @change="selectConfigWorkspace"><option value="compose">Compose</option><option value="environment">Environment</option><option value="network">Networks</option></select><button v-if="isEditorWorkspace" class="wrap-button" :aria-pressed="wrapLines" @click="wrapLines = !wrapLines">Wrap {{ wrapLines ? "On" : "Off" }}</button></div>
+                <div v-if="$root.isMobile && mobileView === 'config'" class="mobile-config-selector"><label for="config-workspace">Config</label><select id="config-workspace" v-model="configWorkspace" class="form-select" @change="selectConfigWorkspace"><option value="compose">Compose</option><option v-if="isEditMode" value="environment">Environment</option><option v-if="isEditMode" value="network">Networks</option></select><button v-if="isEditorWorkspace" class="wrap-button" :aria-pressed="wrapLines" @click="wrapLines = !wrapLines">Wrap {{ wrapLines ? "On" : "Off" }}</button></div>
 
                 <main v-show="!$root.isMobile || mobileView !== 'more'" class="workspace">
                     <section v-if="activeWorkspace === 'overview'" class="overview-workspace workspace-scroll">
                         <div class="stack-actions"><button v-if="!isEditMode" class="btn btn-secondary" :disabled="processing" @click="enableEditMode"><font-awesome-icon icon="pen" /> {{ $t("editStack") }}</button><button v-if="!active && !isEditMode" class="btn btn-primary" :disabled="processing" @click="startStack"><font-awesome-icon icon="play" /> {{ $t("startStack") }}</button><button v-if="active && !isEditMode" class="btn btn-normal" :disabled="processing" @click="stopStack"><font-awesome-icon icon="stop" /> {{ $t("stopStack") }}</button><button v-if="!isEditMode" class="btn btn-normal" :disabled="processing" @click="restartStack"><font-awesome-icon icon="rotate" /> {{ $t("restartStack") }}</button><button v-if="!isEditMode" class="btn btn-normal" :disabled="processing" @click="updateStack"><font-awesome-icon icon="cloud-arrow-down" /> {{ $t("updateStack") }}</button><button v-if="isEditMode && !isAdd" class="btn btn-normal" :disabled="processing" @click="discardStack">{{ $t("discardStack") }}</button></div>
                         <div v-if="isAdd" class="general-fields"><label for="name" class="form-label">{{ $t("stackName") }}</label><input id="name" v-model="stack.name" type="text" class="form-control" required @blur="stackNameToLowercase"><label class="form-label mt-3">{{ $t("dockgeAgent") }}</label><select v-model="stack.endpoint" class="form-select"><option v-for="(agent, agentEndpoint) in $root.agentList" :key="agentEndpoint" :value="agentEndpoint" :disabled="$root.agentStatusList[agentEndpoint] != 'online'">({{ $root.agentStatusList[agentEndpoint] }}) {{ agent.name || agent.url || $t("Current") }}</option></select></div>
                         <div v-if="isEditMode" class="input-group add-container"><input v-model="newContainerName" :placeholder="$t('New Container Name...')" class="form-control" @keyup.enter="addContainer"><button class="btn btn-primary" @click="addContainer">{{ $t("addContainer") }}</button></div>
-                        <div ref="containerList" class="container-list"><Container v-for="(service, name) in jsonConfig.services" :key="name" :name="name" :is-edit-mode="isEditMode" :first="name === Object.keys(jsonConfig.services)[0]" :serviceStatus="serviceStatusList[name]" :dockerStats="dockerStats" @start-service="startService" @stop-service="stopService" @restart-service="restartService" /></div>
+                        <div v-if="!isEditMode" class="service-summary" role="region" aria-label="Service status">
+                            <div class="service-summary-title">{{ $tc("container", serviceRows.length) }} <span>{{ serviceRows.length }}</span></div>
+                            <div class="service-table-wrap">
+                                <table>
+                                    <thead><tr><th>{{ $t("service") }}</th><th>{{ $t("dockerImage") }}</th><th>{{ $t("status") }}</th><th>{{ $t("uptime") }}</th><th>{{ $tc("port", 2) }}</th><th>{{ $t("CPU") }}</th><th>{{ $t("memory") }}</th><th>{{ $t("networkIO") }}</th></tr></thead>
+                                    <tbody><tr v-for="row in serviceRows" :key="row.name"><td><span class="status-dot" :class="row.statusClass"></span><strong>{{ row.name }}</strong></td><td class="mono muted">{{ row.image }}</td><td><span class="status-pill" :class="row.statusClass">{{ row.status }}</span></td><td class="mono">{{ row.uptime || "—" }}</td><td class="mono ports"><a v-for="port in row.ports" :key="port.display" :href="port.url" target="_blank">{{ port.display }}</a><span v-if="row.ports.length === 0">—</span></td><td class="mono">{{ row.cpu }}</td><td class="mono">{{ row.memory }}</td><td class="mono">{{ row.network }}</td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div v-else ref="containerList" class="container-list"><Container v-for="(service, name) in jsonConfig.services" :key="name" :name="name" :is-edit-mode="isEditMode" :first="name === Object.keys(jsonConfig.services)[0]" :serviceStatus="serviceStatusList[name]" :dockerStats="dockerStats" @start-service="startService" @stop-service="stopService" @restart-service="restartService" /></div>
                         <div v-if="isEditMode" class="extra-settings shadow-box"><label class="form-label">{{ $tc("url", 2) }}</label><ArrayInput name="urls" :display-name="$t('url')" placeholder="https://" object-type="x-dockge" /></div>
                     </section>
                     <section v-show="activeWorkspace === 'logs'" class="logs-workspace"><Terminal v-if="!isAdd" ref="combinedTerminal" class="terminal" :name="combinedTerminalName" :endpoint="endpoint" :rows="combinedTerminalRows" :cols="combinedTerminalCols" /></section>
                     <section v-show="activeWorkspace === 'compose'" class="editor-workspace"><div v-if="!$root.isMobile" class="editor-toolbar"><button class="wrap-button" :aria-pressed="wrapLines" @click="wrapLines = !wrapLines">Wrap Lines: {{ wrapLines ? "On" : "Off" }}</button></div><div class="editor-view"><code-mirror ref="editor" v-model="stack.composeYAML" :extensions="extensions" minimal :wrap="wrapLines" dark tab :disabled="!isEditMode" :hasFocus="editorFocus" @change="yamlCodeChange" /><div v-if="yamlError" class="validation-error" role="alert">{{ yamlError }}</div></div></section>
-                    <section v-show="activeWorkspace === 'environment'" class="editor-workspace"><div v-if="!$root.isMobile" class="editor-toolbar"><button class="wrap-button" :aria-pressed="wrapLines" @click="wrapLines = !wrapLines">Wrap Lines: {{ wrapLines ? "On" : "Off" }}</button></div><div class="editor-view"><code-mirror ref="envEditor" v-model="stack.composeENV" :extensions="extensionsEnv" minimal :wrap="wrapLines" dark tab :disabled="!isEditMode" :hasFocus="editorFocus" @change="yamlCodeChange" /></div></section>
-                    <section v-show="activeWorkspace === 'network'" class="network-workspace workspace-scroll"><div class="network-panel shadow-box"><NetworkInput /></div></section>
+                    <section v-if="isEditMode" v-show="activeWorkspace === 'environment'" class="editor-workspace"><div v-if="!$root.isMobile" class="editor-toolbar"><button class="wrap-button" :aria-pressed="wrapLines" @click="wrapLines = !wrapLines">Wrap Lines: {{ wrapLines ? "On" : "Off" }}</button></div><div class="editor-view"><code-mirror ref="envEditor" v-model="stack.composeENV" :extensions="extensionsEnv" minimal :wrap="wrapLines" dark tab :disabled="!isEditMode" :hasFocus="editorFocus" @change="yamlCodeChange" /></div></section>
+                    <section v-if="isEditMode" v-show="activeWorkspace === 'network'" class="network-workspace workspace-scroll"><div class="network-panel shadow-box"><NetworkInput /></div></section>
                 </main>
             </template>
 
@@ -52,7 +61,7 @@ import {
     getCombinedTerminalName,
     getComposeTerminalName,
     PROGRESS_TERMINAL_ROWS,
-    RUNNING
+    RUNNING, parseDockerPort
 } from "../../../common/util-common";
 import { BModal } from "bootstrap-vue-next";
 import NetworkInput from "../components/NetworkInput.vue";
@@ -147,18 +156,49 @@ export default {
     },
     computed: {
         desktopTabs() {
-            return [
+            const tabs = [
                 { id: "overview",
                     label: "Overview" },
                 { id: "logs",
                     label: "Logs" },
                 { id: "compose",
                     label: "Compose" },
-                { id: "environment",
-                    label: "Environment" },
-                { id: "network",
-                    label: this.$tc("network", 2) },
             ];
+            if (this.isEditMode) {
+                tabs.push(
+                    {
+                        id: "environment",
+                        label: "Environment"
+                    },
+                    {
+                        id: "network",
+                        label: this.$tc("network", 2)
+                    },
+                );
+            }
+            return tabs;
+        },
+
+        serviceRows() {
+            return Object.keys(this.jsonConfig.services || {}).map((name) => {
+                const instances = this.serviceStatusList[name] || [];
+                const instance = instances[0] || {};
+                const stat = instances.map((item) => this.dockerStats[item.name]).find(Boolean) || {};
+                const configuredPorts = this.envsubstJSONConfig.services?.[name]?.ports || [];
+                const status = instance.status || "inactive";
+
+                return {
+                    name,
+                    image: instance.image || this.envsubstJSONConfig.services?.[name]?.image || "—",
+                    status,
+                    statusClass: [ "running", "healthy" ].includes(status) ? "active" : status === "unhealthy" ? "danger" : "inactive",
+                    uptime: instance.runningFor,
+                    ports: configuredPorts.map((port) => this.parsePort(port)),
+                    cpu: stat.CPUPerc || "—",
+                    memory: stat.MemUsage || "—",
+                    network: stat.NetIO || "—",
+                };
+            });
         },
 
         mobileNav() {
@@ -581,6 +621,10 @@ export default {
         discardStack() {
             this.loadStack();
             this.isEditMode = false;
+            if ([ "environment", "network" ].includes(this.activeWorkspace)) {
+                this.activeWorkspace = "overview";
+                this.configWorkspace = "compose";
+            }
         },
 
         yamlToJSON(yaml) {
@@ -636,6 +680,13 @@ export default {
 
         enableEditMode() {
             this.isEditMode = true;
+        },
+
+        parsePort(port) {
+            if (this.stack.endpoint) {
+                return parseDockerPort(port, this.stack.primaryHostname);
+            }
+            return parseDockerPort(port, this.$root.info.primaryHostname || location.hostname);
         },
 
         selectMobileView(view) {
@@ -746,7 +797,7 @@ export default {
 
 <style scoped lang="scss">
 @import "../styles/vars.scss";
-.stack-page { display: flex; height: calc(100dvh - 112px); min-height: 560px; min-width: 0; flex-direction: column; overflow: hidden; }
+.stack-page { display: flex; height: calc(100dvh - 84px); min-height: 560px; min-width: 0; flex-direction: column; overflow: hidden; font-size: 0.875rem; }
 .stack-header { display: flex; min-height: 44px; align-items: center; gap: 12px; flex: 0 0 auto; }
 .stack-title { display: flex; min-width: 0; align-items: center; gap: 12px; }
 .stack-title h1 { margin: 0; overflow: hidden; font-size: 25px; text-overflow: ellipsis; white-space: nowrap; }
@@ -759,10 +810,27 @@ export default {
 .dirty-indicator { align-self: center; margin-left: auto; padding-right: 12px; color: $warning; }
 .workspace { flex: 1 1 auto; min-width: 0; min-height: 0; overflow: hidden; border: 1px solid #dee2e6; border-top: 0; border-radius: 0 0 10px 10px; }
 .workspace-scroll { height: 100%; overflow: auto; overscroll-behavior: contain; }
-.overview-workspace { padding: 12px; }
-.stack-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-.stack-actions .btn { min-height: 40px; }
+.overview-workspace { padding: 8px; }
+.stack-actions { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+.stack-actions .btn { min-height: 34px; padding: 5px 9px; font-size: 0.8rem; }
 .container-list { width: 100%; }
+.service-summary { overflow: hidden; border: 1px solid #adb5bd; border-radius: 7px; }
+.service-summary-title { padding: 7px 10px; border-bottom: 1px solid #adb5bd; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.service-summary-title span { margin-left: 6px; color: #6c757d; font-weight: 500; }
+.service-table-wrap { overflow-x: auto; }
+.service-summary table { width: 100%; min-width: 920px; border-collapse: collapse; }
+.service-summary th { padding: 6px 8px; border-bottom: 1px solid #adb5bd; color: #6c757d; font-size: 0.7rem; letter-spacing: 0.035em; text-align: left; text-transform: uppercase; }
+.service-summary td { padding: 7px 8px; border-bottom: 1px solid rgba(128, 128, 128, 0.25); font-size: 0.78rem; vertical-align: middle; }
+.service-summary tbody tr:last-child td { border-bottom: 0; }
+.service-summary .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+.service-summary .muted { color: #6c757d; }
+.status-dot { display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; background: #6c757d; }
+.status-dot.active { background: $primary; }
+.status-dot.danger { background: $danger; }
+.status-pill { display: inline-block; padding: 2px 7px; border-radius: 4px; color: white; background: #6c757d; font-size: 0.68rem; font-weight: 700; }
+.status-pill.active { background: $primary; }
+.status-pill.danger { background: $danger; }
+.ports { display: flex; flex-direction: column; gap: 2px; }
 .add-container { max-width: 700px; margin-bottom: 10px; }
 .extra-settings { max-width: 1050px; margin-top: 10px; }
 .logs-workspace, .editor-workspace { display: flex; width: 100%; height: 100%; min-width: 0; min-height: 0; flex-direction: column; overflow: hidden; }
