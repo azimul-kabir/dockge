@@ -210,7 +210,7 @@ export default {
         .title {
             flex: 1 1 auto;
             min-width: 0;
-            font-size: 17px;
+            font-size: 14px;
             font-weight: 400;
 
             .stack-name {
@@ -226,7 +226,7 @@ export default {
             width: 70px;
             min-width: 70px;
             padding: 4.2px 7.8px;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 700;
             line-height: 1;
         }

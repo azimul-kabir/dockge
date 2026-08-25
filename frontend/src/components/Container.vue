@@ -55,7 +55,7 @@
         </div>
 
         <div v-if="isEditMode" class="mt-2">
-            <button class="btn btn-normal me-2" @click="showConfig = !showConfig">
+            <button class="btn btn-normal me-2 container-config-trigger" @click="showConfig = !showConfig">
                 <font-awesome-icon icon="edit" />
                 {{ $t("Edit") }}
             </button>
