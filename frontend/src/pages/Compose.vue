@@ -747,7 +747,7 @@ export default {
         },
 
         isAdd() {
-            return this.$route.path === "/compose" && !this.submitted;
+            return this.$route.path === "/compose";
         },
 
         isNewComposeRoute() {
@@ -1459,6 +1459,9 @@ export default {
 
         enableEditMode() {
             this.isEditMode = true;
+            if (this.serviceRows.length === 1) {
+                this.expandedService = this.serviceRows[0].name;
+            }
         },
 
         checkYAML() {

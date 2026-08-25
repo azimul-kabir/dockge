@@ -12,13 +12,15 @@
 
                 <Teleport to="#desktop-image-actions" :disabled="$root.isMobile">
                     <div class="bulk-image-actions">
-                        <button class="btn btn-outline-normal" type="button" :disabled="checkingAllImages || updatingAllImages" @click="checkAllImages">
+                        <button class="btn btn-outline-normal" type="button" :disabled="checkingAllImages || updatingAllImages" aria-label="Check all images" @click="checkAllImages">
                             <font-awesome-icon icon="arrows-rotate" class="me-1" />
-                            {{ checkingAllImages ? "Checking…" : "Check all images" }}
+                            <span class="desktop-action-label">{{ checkingAllImages ? "Checking…" : "Check all images" }}</span>
+                            <span class="mobile-action-label">{{ checkingAllImages ? "Checking…" : "Check" }}</span>
                         </button>
-                        <button class="btn btn-primary" type="button" :disabled="checkingAllImages || updatingAllImages || updateTargetCount === 0" @click="updateAllImages">
+                        <button class="btn btn-primary" type="button" :disabled="checkingAllImages || updatingAllImages || updateTargetCount === 0" aria-label="Update all images" @click="updateAllImages">
                             <font-awesome-icon icon="cloud-arrow-down" class="me-1" />
-                            {{ updatingAllImages ? "Updating…" : `Update all (${updateTargetCount})` }}
+                            <span class="desktop-action-label">{{ updatingAllImages ? "Updating…" : `Update all (${updateTargetCount})` }}</span>
+                            <span class="mobile-action-label">{{ updatingAllImages ? "Updating…" : `Update (${updateTargetCount})` }}</span>
                         </button>
                     </div>
                 </Teleport>
@@ -515,6 +517,10 @@ export default {
     }
 }
 
+.mobile-action-label {
+    display: none;
+}
+
 .check-report-list {
     margin-bottom: 0;
     padding-left: 0;
@@ -548,6 +554,14 @@ export default {
 }
 
 @media (max-width: 767.98px) {
+    .desktop-action-label {
+        display: none;
+    }
+
+    .mobile-action-label {
+        display: inline;
+    }
+
     .header-top {
         flex-wrap: wrap;
         gap: 0.75rem;

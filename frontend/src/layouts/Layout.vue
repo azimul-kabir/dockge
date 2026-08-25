@@ -10,8 +10,8 @@
         </div>
 
         <!-- Desktop header -->
-        <header v-if="! $root.isMobile" class="desktop-header d-flex flex-wrap justify-content-center border-bottom">
-            <router-link to="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
+        <header class="desktop-header d-flex flex-wrap justify-content-center border-bottom">
+            <router-link to="/" class="header-brand d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
                 <object class="bi me-2 ms-4" width="40" height="40" data="/icon.svg" />
                 <span class="brand-lockup">
                     <span class="fs-4 title">Dockge Next</span>
@@ -24,7 +24,7 @@
             </a>
 
             <ul class="nav nav-pills">
-                <li v-if="$root.loggedIn" class="nav-item me-2">
+                <li v-if="$root.loggedIn" class="nav-item me-2 header-home">
                     <router-link to="/" class="nav-link">
                         <font-awesome-icon icon="home" /> {{ $t("home") }}
                     </router-link>
@@ -32,13 +32,13 @@
 
                 <li v-if="$root.loggedIn" id="desktop-image-actions" class="nav-item me-2 desktop-image-actions"></li>
 
-                <li v-if="$root.loggedIn" class="nav-item me-2">
+                <li v-if="$root.loggedIn" class="nav-item me-2 header-console">
                     <router-link to="/console" class="nav-link">
                         <font-awesome-icon icon="terminal" /> {{ $t("console") }}
                     </router-link>
                 </li>
 
-                <li v-if="$root.loggedIn" class="nav-item">
+                <li v-if="$root.loggedIn" class="nav-item header-profile">
                     <div class="dropdown dropdown-profile-pic">
                         <div class="nav-link" data-bs-toggle="dropdown">
                             <div class="profile-pic">{{ $root.usernameFirstChar }}</div>
@@ -187,24 +187,81 @@ export default {
 }
 
 @media (max-width: 767.98px) {
-    header .nav {
+    .desktop-header {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.5rem;
+        padding: max(0.5rem, env(safe-area-inset-top)) 0.65rem 0.6rem;
+
+        .header-brand {
+            justify-self: center;
+            margin: 0 !important;
+
+            object {
+                width: 32px;
+                height: 32px;
+                margin-left: 0 !important;
+            }
+
+            .title {
+                font-size: 1rem !important;
+            }
+
+            .fork-credit {
+                margin-top: 0.1rem;
+                font-size: 0.6rem;
+            }
+        }
+    }
+
+    .desktop-header .nav {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.4rem;
         width: 100%;
-        justify-content: center;
+        margin: 0;
+
+        .nav-item {
+            margin: 0 !important;
+        }
+
+        .header-home {
+            grid-column: 1 / -1;
+            justify-self: center;
+        }
+
+        .header-console {
+            justify-self: end;
+        }
+
+        .header-profile {
+            justify-self: start;
+        }
+
+        .nav-link {
+            padding: 0.38rem 0.6rem;
+            font-size: 0.78rem;
+        }
     }
 
     .desktop-image-actions {
-        flex: 0 0 100%;
+        grid-column: 1 / -1;
         justify-content: center;
         margin-right: 0 !important;
-        margin-bottom: 0.75rem;
 
         :deep(.bulk-image-actions) {
-            justify-content: center;
-            width: auto;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.4rem;
+            width: 100%;
             margin: 0;
 
             .btn {
-                flex: 0 0 auto;
+                min-width: 0;
+                padding: 0.42rem 0.35rem;
+                overflow: hidden;
+                font-size: 0.72rem;
+                text-overflow: ellipsis;
             }
         }
     }
