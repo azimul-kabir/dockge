@@ -1290,6 +1290,8 @@ export default {
                 this.$root.toastRes(res);
 
                 if (res.ok) {
+                    this.showProgressTerminal = false;
+                    this.expandedService = null;
                     this.isEditMode = false;
                     this.$router.push(this.url);
                 }
@@ -1353,6 +1355,7 @@ export default {
                 this.processing = false;
                 this.$root.toastRes(res);
                 if (res.ok) {
+                    this.showProgressTerminal = false;
                     this.requestImageUpdateStatus();
                 }
             });
