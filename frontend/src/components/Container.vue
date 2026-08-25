@@ -1,6 +1,6 @@
 <template>
-    <div class="shadow-box big-padding mb-3 container">
-        <div class="row">
+    <div class="shadow-box big-padding mb-3 container" :class="{ 'inline-container-editor': inlineEdit }">
+        <div v-if="!inlineEdit" class="row">
             <div class="col-5 container-summary">
                 <h4 class="container-name">{{ name }}</h4>
                 <div class="image mb-2">
@@ -54,7 +54,7 @@
             </div>
         </div>
 
-        <div v-if="isEditMode" class="mt-2">
+        <div v-if="isEditMode && !inlineEdit" class="mt-2">
             <button class="btn btn-normal me-2 container-config-trigger" @click="showConfig = !showConfig">
                 <font-awesome-icon icon="edit" />
                 {{ $t("Edit") }}
@@ -93,7 +93,7 @@
         </div>
 
         <transition name="slide-fade" appear>
-            <div v-if="isEditMode && showConfig" class="config mt-3">
+            <div v-if="isEditMode && (showConfig || inlineEdit)" class="config" :class="{ 'mt-3': !inlineEdit }">
                 <!-- Image -->
                 <div class="mb-4">
                     <label class="form-label">
@@ -207,6 +207,10 @@ export default defineComponent({
             required: true,
         },
         isEditMode: {
+            type: Boolean,
+            default: false,
+        },
+        inlineEdit: {
             type: Boolean,
             default: false,
         },
@@ -395,6 +399,27 @@ export default defineComponent({
     min-width: 0;
 }
 
+.inline-container-editor {
+    width: 100%;
+    max-width: none;
+    margin: 0 !important;
+    padding: 0.85rem !important;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+
+    .config {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0 1rem;
+
+        > div {
+            min-width: 0;
+            margin-bottom: 0.8rem !important;
+        }
+    }
+}
+
 .image,
 .stats,
 .badge {
@@ -411,6 +436,10 @@ export default defineComponent({
 }
 
 @media (max-width: 767.98px) {
+    .inline-container-editor .config {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     .container {
         width: 100%;
         max-width: 100%;

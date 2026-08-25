@@ -115,8 +115,16 @@
 
             <section v-if="stack.isManagedByDockge && !isAdd" class="service-summary" aria-labelledby="service-summary-heading">
                 <div class="service-summary-title">
-                    <h2 id="service-summary-heading">{{ $tc("container", serviceRows.length) }}</h2>
-                    <span>{{ serviceRows.length }}</span>
+                    <div class="service-summary-label">
+                        <h2 id="service-summary-heading">{{ $tc("container", serviceRows.length) }}</h2>
+                        <span>{{ serviceRows.length }}</span>
+                    </div>
+                    <div v-if="isEditMode" class="service-summary-add">
+                        <input v-model="newContainerName" :placeholder="$t(`New Container Name...`)" class="form-control form-control-sm" @keyup.enter="addContainer" />
+                        <button class="btn btn-sm btn-primary" :disabled="!newContainerName" @click="addContainer">
+                            <font-awesome-icon icon="plus" class="me-1" /> {{ $t("addContainer") }}
+                        </button>
+                    </div>
                 </div>
                 <div class="service-table-wrap">
                     <table>
@@ -134,53 +142,67 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="row in serviceRows" :key="row.name">
-                                <td><span class="service-dot" :class="row.stateClass"></span><strong>{{ row.name }}</strong></td>
-                                <td class="mono muted">{{ row.image }}</td>
-                                <td><span class="service-state" :class="row.stateClass">{{ row.state }}</span></td>
-                                <td class="mono">{{ row.uptime }}</td>
-                                <td class="mono ports">
-                                    <span v-if="row.internalIP" class="internal-ip">{{ row.internalIP }}</span>
-                                    <template v-for="port in row.ports" :key="port.display">
-                                        <a v-if="port.url" :href="port.url" target="_blank" rel="noopener noreferrer">{{ port.display }}</a>
-                                        <span v-else>{{ port.display }}</span>
-                                    </template>
-                                    <span v-if="row.ports.length === 0">—</span>
-                                </td>
-                                <td class="mono">{{ row.cpu }}</td>
-                                <td class="mono">{{ row.memory }}</td>
-                                <td class="mono">{{ row.network }}</td>
-                                <td class="service-actions">
-                                    <BDropdown right text="Actions" size="sm" variant="normal">
-                                        <template v-if="isEditMode">
-                                            <BDropdownItem @click="editService(row.name)">
-                                                <font-awesome-icon icon="pen" class="me-1" /> Configure
-                                            </BDropdownItem>
-                                            <BDropdownItem @click="removeService(row.name)">
-                                                <font-awesome-icon icon="trash" class="me-1" /> {{ $t("deleteContainer") }}
-                                            </BDropdownItem>
+                            <template v-for="row in serviceRows" :key="row.name">
+                                <tr :class="{ 'is-configuring': expandedService === row.name }">
+                                    <td><span class="service-dot" :class="row.stateClass"></span><strong>{{ row.name }}</strong></td>
+                                    <td class="mono muted">{{ row.image }}</td>
+                                    <td><span class="service-state" :class="row.stateClass">{{ row.state }}</span></td>
+                                    <td class="mono">{{ row.uptime }}</td>
+                                    <td class="mono ports">
+                                        <span v-if="row.internalIP" class="internal-ip">{{ row.internalIP }}</span>
+                                        <template v-for="port in row.ports" :key="port.display">
+                                            <a v-if="port.url" :href="port.url" target="_blank" rel="noopener noreferrer">{{ port.display }}</a>
+                                            <span v-else>{{ port.display }}</span>
                                         </template>
-                                        <template v-else>
-                                            <BDropdownItem :to="serviceTerminalRoute(row.name)">
-                                                <font-awesome-icon icon="terminal" class="me-1" /> Bash
-                                            </BDropdownItem>
-                                            <BDropdownItem v-if="serviceRows.length > 1" :disabled="processing" @click="restartService(row.name)">
-                                                <font-awesome-icon icon="rotate" class="me-1" /> {{ $t("restartStack") }}
-                                            </BDropdownItem>
-                                            <BDropdownItem v-if="serviceRows.length > 1" :disabled="processing" @click="stopService(row.name)">
-                                                <font-awesome-icon icon="stop" class="me-1" /> {{ $t("stopStack") }}
-                                            </BDropdownItem>
-                                        </template>
-                                    </BDropdown>
-                                </td>
-                            </tr>
+                                        <span v-if="row.ports.length === 0">—</span>
+                                    </td>
+                                    <td class="mono">{{ row.cpu }}</td>
+                                    <td class="mono">{{ row.memory }}</td>
+                                    <td class="mono">{{ row.network }}</td>
+                                    <td class="service-actions">
+                                        <BDropdown right text="Actions" size="sm" variant="normal">
+                                            <template v-if="isEditMode">
+                                                <BDropdownItem @click="editService(row.name)">
+                                                    <font-awesome-icon icon="pen" class="me-1" /> {{ expandedService === row.name ? "Close" : "Configure" }}
+                                                </BDropdownItem>
+                                                <BDropdownItem @click="removeService(row.name)">
+                                                    <font-awesome-icon icon="trash" class="me-1" /> {{ $t("deleteContainer") }}
+                                                </BDropdownItem>
+                                            </template>
+                                            <template v-else>
+                                                <BDropdownItem :to="serviceTerminalRoute(row.name)">
+                                                    <font-awesome-icon icon="terminal" class="me-1" /> Bash
+                                                </BDropdownItem>
+                                                <BDropdownItem v-if="serviceRows.length > 1" :disabled="processing" @click="restartService(row.name)">
+                                                    <font-awesome-icon icon="rotate" class="me-1" /> {{ $t("restartStack") }}
+                                                </BDropdownItem>
+                                                <BDropdownItem v-if="serviceRows.length > 1" :disabled="processing" @click="stopService(row.name)">
+                                                    <font-awesome-icon icon="stop" class="me-1" /> {{ $t("stopStack") }}
+                                                </BDropdownItem>
+                                            </template>
+                                        </BDropdown>
+                                    </td>
+                                </tr>
+                                <tr v-if="isEditMode && expandedService === row.name" class="service-editor-row">
+                                    <td colspan="9">
+                                        <Container
+                                            :name="row.name"
+                                            :is-edit-mode="true"
+                                            :inline-edit="true"
+                                            :serviceStatus="serviceStatusList[row.name]"
+                                            :image-update-status="imageUpdateStatus[row.name]"
+                                            :dockerStats="dockerStats"
+                                        />
+                                    </td>
+                                </tr>
+                            </template>
                         </tbody>
                     </table>
                 </div>
             </section>
 
             <div v-if="stack.isManagedByDockge" class="stack-workspace">
-                <section v-if="isEditMode || isAdd" class="stack-section container-configuration" aria-labelledby="configuration-heading">
+                <section v-if="isAdd" class="stack-section container-configuration" aria-labelledby="configuration-heading">
                     <h2 id="configuration-heading" class="stack-section-heading">Container configuration</h2>
 
                     <!-- General -->
@@ -240,18 +262,6 @@
                     <button v-if="false && isEditMode && jsonConfig.services && Object.keys(jsonConfig.services).length > 0" class="btn btn-normal mb-3" @click="addContainer">{{ $t("addContainer") }}</button>
 
                     <!-- General -->
-                    <div v-if="isEditMode">
-                        <h4 class="mb-3">{{ $t("extra") }}</h4>
-                        <div class="shadow-box big-padding mb-3">
-                            <!-- URLs -->
-                            <div class="mb-4">
-                                <label class="form-label">
-                                    {{ $tc("url", 2) }}
-                                </label>
-                                <ArrayInput name="urls" :display-name="$t('url')" placeholder="https://" object-type="x-dockge" />
-                            </div>
-                        </div>
-                    </div>
                 </section>
 
                 <section class="stack-section logs-section" aria-labelledby="logs-heading">
@@ -477,6 +487,14 @@
                         </div>
                     </fieldset>
                 </section>
+
+                <section v-if="isEditMode" class="stack-section stack-settings" aria-labelledby="stack-settings-heading">
+                    <h2 id="stack-settings-heading" class="stack-section-heading">Stack settings</h2>
+                    <div class="shadow-box compact-settings">
+                        <label class="form-label">{{ $tc("url", 2) }}</label>
+                        <ArrayInput name="urls" :display-name="$t('url')" placeholder="https://" object-type="x-dockge" />
+                    </div>
+                </section>
             </div>
 
             <div v-if="!stack.isManagedByDockge && !processing">
@@ -606,6 +624,7 @@ export default {
             historyLoading: false,
             historyRevisions: [],
             showNotReferencedVariables: false,
+            expandedService: null,
         };
     },
     computed: {
@@ -925,26 +944,22 @@ export default {
             };
         },
 
-        serviceAnchor(name) {
-            return String(name).replace(/[^a-zA-Z0-9_-]/g, "-");
-        },
-
         editService(name) {
-            this.$nextTick(() => {
-                const card = document.getElementById(`service-config-${this.serviceAnchor(name)}`);
-                card?.scrollIntoView({
+            this.expandedService = this.expandedService === name ? null : name;
+            if (this.expandedService) {
+                this.$nextTick(() => document.querySelector(".service-editor-row")?.scrollIntoView({
                     behavior: "smooth",
-                    block: "start"
-                });
-                if (!card?.querySelector(".config")) {
-                    card?.querySelector(".container-config-trigger")?.click();
-                }
-            });
+                    block: "nearest"
+                }));
+            }
         },
 
         removeService(name) {
             if (confirm(`Delete the ${name} service from this stack configuration?`)) {
                 delete this.jsonConfig.services[name];
+                if (this.expandedService === name) {
+                    this.expandedService = null;
+                }
             }
         },
 
@@ -1374,6 +1389,7 @@ export default {
         discardStack() {
             this.loadStack();
             this.isEditMode = false;
+            this.expandedService = null;
         },
 
         cancelStack() {
@@ -1459,15 +1475,19 @@ export default {
                 return;
             }
 
-            this.jsonConfig.services[this.newContainerName] = {
+            const containerName = this.newContainerName;
+            this.jsonConfig.services[containerName] = {
                 restart: "unless-stopped",
             };
             this.newContainerName = "";
-            let element = this.$refs.containerList.lastElementChild;
-            element.scrollIntoView({
-                block: "start",
-                behavior: "smooth"
-            });
+            if (this.isAdd) {
+                this.$nextTick(() => this.$refs.containerList?.lastElementChild?.scrollIntoView({
+                    block: "start",
+                    behavior: "smooth"
+                }));
+            } else {
+                this.expandedService = containerName;
+            }
         },
 
         stackNameToLowercase() {
@@ -1554,7 +1574,8 @@ export default {
 
 .service-summary-title {
     display: flex;
-    align-items: baseline;
+    align-items: center;
+    justify-content: space-between;
     gap: 0.45rem;
     padding: 0.38rem 0.65rem;
     border-bottom: 1px solid #adb5bd;
@@ -1570,6 +1591,28 @@ export default {
     span {
         color: #6c757d;
         font-size: 0.75rem;
+    }
+}
+
+.service-summary-label,
+.service-summary-add {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.service-summary-add {
+    width: min(420px, 48%);
+
+    .form-control {
+        min-width: 9rem;
+        font-size: 0.75rem;
+    }
+
+    .btn {
+        flex: 0 0 auto;
+        font-size: 0.72rem;
+        white-space: nowrap;
     }
 }
 
@@ -1604,6 +1647,15 @@ export default {
 
 .service-summary tbody tr:last-child td {
     border-bottom: 0;
+}
+
+.service-summary tr.is-configuring td {
+    background: rgba(13, 110, 253, 0.06);
+}
+
+.service-summary .service-editor-row > td {
+    padding: 0;
+    background: rgba(127, 127, 127, 0.045);
 }
 
 .service-summary .mono {
@@ -1687,6 +1739,21 @@ export default {
 
 .service-config-card {
     scroll-margin-top: 0.75rem;
+}
+
+.compact-settings {
+    padding: 0.8rem;
+}
+
+@media (max-width: 767.98px) {
+    .service-summary-title {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .service-summary-add {
+        width: 100%;
+    }
 }
 
 .stack-workspace {
