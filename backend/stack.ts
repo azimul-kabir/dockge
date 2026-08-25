@@ -718,6 +718,16 @@ export class Stack {
             }
 
             let lines = res.stdout?.toString().split("\n");
+            const composeRows: Array<{
+                Service: string;
+                State: string;
+                Name: string;
+                Health: string;
+                Image?: string;
+                RunningFor?: string;
+                Publishers?: Array<{ PublishedPort?: number; TargetPort?: number; Protocol?: string; URL?: string }>;
+                internalIP?: string;
+            }> = [];
 
             const addLine = (obj: {
                 Service: string;
@@ -727,6 +737,7 @@ export class Stack {
                 Image?: string;
                 RunningFor?: string;
                 Publishers?: Array<{ PublishedPort?: number; TargetPort?: number; Protocol?: string; URL?: string }>;
+                internalIP?: string;
             }) => {
                 if (!statusList.has(obj.Service)) {
                     statusList.set(obj.Service, []);
@@ -737,6 +748,7 @@ export class Stack {
                     image: obj.Image || "",
                     runningFor: obj.RunningFor || "",
                     publishers: obj.Publishers || [],
+                    internalIP: obj.internalIP || "",
                 });
             };
 
@@ -744,13 +756,37 @@ export class Stack {
                 try {
                     let obj = JSON.parse(line);
                     if (obj instanceof Array) {
-                        obj.forEach(addLine);
+                        composeRows.push(...obj);
                     } else {
-                        addLine(obj);
+                        composeRows.push(obj);
                     }
                 } catch (e) {
                 }
             }
+
+            const containerNames = composeRows.map((row) => row.Name).filter(Boolean);
+            if (containerNames.length > 0) {
+                try {
+                    const inspectResult = await childProcessAsync.spawn("docker", [ "inspect", ...containerNames ], {
+                        cwd: this.path,
+                        encoding: "utf-8",
+                    });
+                    const inspectedContainers = JSON.parse(inspectResult.stdout?.toString() || "[]");
+                    const internalIPs = new Map<string, string>();
+                    for (const container of inspectedContainers) {
+                        const networks = Object.values(container.NetworkSettings?.Networks || {}) as Array<{ IPAddress?: string }>;
+                        const internalIP = networks.map((network) => network.IPAddress).find(Boolean) || "";
+                        internalIPs.set(String(container.Name || "").replace(/^\//, ""), internalIP);
+                    }
+                    composeRows.forEach((row) => {
+                        row.internalIP = internalIPs.get(row.Name) || "";
+                    });
+                } catch (e) {
+                    log.debug("getServiceStatusList", `Unable to inspect container network addresses for ${this.name}: ${e}`);
+                }
+            }
+
+            composeRows.forEach(addLine);
 
             return statusList;
         } catch (e) {

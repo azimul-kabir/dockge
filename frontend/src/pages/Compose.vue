@@ -126,7 +126,7 @@
                                 <th>Image</th>
                                 <th>State</th>
                                 <th>Uptime</th>
-                                <th>Ports</th>
+                                <th>IP / Ports</th>
                                 <th>CPU</th>
                                 <th>Memory</th>
                                 <th>Network I/O</th>
@@ -140,6 +140,7 @@
                                 <td><span class="service-state" :class="row.stateClass">{{ row.state }}</span></td>
                                 <td class="mono">{{ row.uptime }}</td>
                                 <td class="mono ports">
+                                    <span v-if="row.internalIP" class="internal-ip">{{ row.internalIP }}</span>
                                     <template v-for="port in row.ports" :key="port.display">
                                         <a v-if="port.url" :href="port.url" target="_blank" rel="noopener noreferrer">{{ port.display }}</a>
                                         <span v-else>{{ port.display }}</span>
@@ -160,13 +161,13 @@
                                             </BDropdownItem>
                                         </template>
                                         <template v-else>
-                                            <BDropdownItem v-if="!row.isRunning" :disabled="processing" @click="startService(row.name)">
-                                                <font-awesome-icon icon="play" class="me-1" /> {{ $t("startStack") }}
+                                            <BDropdownItem :to="serviceTerminalRoute(row.name)">
+                                                <font-awesome-icon icon="terminal" class="me-1" /> Bash
                                             </BDropdownItem>
-                                            <BDropdownItem v-if="row.isRunning" :disabled="processing" @click="restartService(row.name)">
+                                            <BDropdownItem v-if="serviceRows.length > 1" :disabled="processing" @click="restartService(row.name)">
                                                 <font-awesome-icon icon="rotate" class="me-1" /> {{ $t("restartStack") }}
                                             </BDropdownItem>
-                                            <BDropdownItem v-if="row.isRunning" :disabled="processing" @click="stopService(row.name)">
+                                            <BDropdownItem v-if="serviceRows.length > 1" :disabled="processing" @click="stopService(row.name)">
                                                 <font-awesome-icon icon="stop" class="me-1" /> {{ $t("stopStack") }}
                                             </BDropdownItem>
                                         </template>
@@ -661,17 +662,23 @@ export default {
                 const configuredImage = this.envsubstJSONConfig.services?.[name]?.image;
                 const state = instance.status || "inactive";
                 const stateClass = [ "running", "healthy" ].includes(state) ? "active" : state === "unhealthy" ? "danger" : "inactive";
+                const seenPorts = new Set();
                 const ports = (instance.publishers || []).map((publisher) => {
                     const target = publisher.TargetPort || "";
                     const published = publisher.PublishedPort;
                     const protocol = publisher.Protocol ? `/${publisher.Protocol}` : "";
                     const display = published ? `${published}→${target}${protocol}` : `${target}${protocol}`;
+                    const key = `${published || ""}:${target}:${protocol}`;
+                    if (seenPorts.has(key)) {
+                        return null;
+                    }
+                    seenPorts.add(key);
                     const hostname = this.stack.primaryHostname || window.location.hostname;
                     return {
                         display,
                         url: published ? `http://${hostname}:${published}` : "",
                     };
-                }).filter((port) => port.display);
+                }).filter((port) => port?.display);
 
                 return {
                     name,
@@ -679,6 +686,7 @@ export default {
                     state,
                     stateClass,
                     isRunning: [ "running", "healthy", "unhealthy" ].includes(state),
+                    internalIP: instance.internalIP || "",
                     uptime: instance.runningFor || "—",
                     ports,
                     cpu: stat.CPUPerc || "—",
@@ -895,6 +903,28 @@ export default {
         document.body.classList.remove("dockge-editor-fullscreen");
     },
     methods: {
+        serviceTerminalRoute(serviceName) {
+            if (this.endpoint) {
+                return {
+                    name: "containerTerminalEndpoint",
+                    params: {
+                        endpoint: this.endpoint,
+                        stackName: this.stack.name,
+                        serviceName,
+                        type: "bash",
+                    },
+                };
+            }
+            return {
+                name: "containerTerminal",
+                params: {
+                    stackName: this.stack.name,
+                    serviceName,
+                    type: "bash",
+                },
+            };
+        },
+
         serviceAnchor(name) {
             return String(name).replace(/[^a-zA-Z0-9_-]/g, "-");
         },
