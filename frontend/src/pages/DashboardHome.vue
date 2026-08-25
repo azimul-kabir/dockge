@@ -108,7 +108,6 @@
             </div>
         </div>
     </transition>
-    <router-view ref="child" />
 </template>
 
 <script>

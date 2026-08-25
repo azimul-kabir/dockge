@@ -30,30 +30,28 @@ const routes = [
                         name: "DashboardHome",
                         path: "/",
                         component: DashboardHome,
-                        children: [
-                            {
-                                path: "/compose",
-                                component: Compose,
-                            },
-                            {
-                                path: "/compose/:stackName/:endpoint",
-                                component: Compose,
-                            },
-                            {
-                                path: "/compose/:stackName",
-                                component: Compose,
-                            },
-                            {
-                                path: "/terminal/:stackName/:serviceName/:type",
-                                component: ContainerTerminal,
-                                name: "containerTerminal",
-                            },
-                            {
-                                path: "/terminal/:stackName/:serviceName/:type/:endpoint",
-                                component: ContainerTerminal,
-                                name: "containerTerminalEndpoint",
-                            },
-                        ]
+                    },
+                    {
+                        path: "/compose",
+                        component: Compose,
+                    },
+                    {
+                        path: "/compose/:stackName/:endpoint",
+                        component: Compose,
+                    },
+                    {
+                        path: "/compose/:stackName",
+                        component: Compose,
+                    },
+                    {
+                        path: "/terminal/:stackName/:serviceName/:type",
+                        component: ContainerTerminal,
+                        name: "containerTerminal",
+                    },
+                    {
+                        path: "/terminal/:stackName/:serviceName/:type/:endpoint",
+                        component: ContainerTerminal,
+                        name: "containerTerminalEndpoint",
                     },
                     {
                         path: "/console",
